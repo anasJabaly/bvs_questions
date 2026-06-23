@@ -1,350 +1,20 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BVS2 Block 2 — Quiz</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+// ════════════════════════════════════════════
+//  FRAGEN-DATENBANK — nach Block sortiert
+//  Hier neue Fragen hinzufügen!
+//  Format: {cat:"Kategorie", q:"Frage?", code:null, opts:["A","B","C","D"], ans:3, exp:"Erklärung"}
+//    - ans = Index der richtigen Antwort (0=A, 1=B, 2=C, 3=D)
+//    - code = null  ODER  ein Code-Snippet als String (mit \n für Zeilenumbruch)
+// ════════════════════════════════════════════
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+// ── BLOCK 1: Socket Programming (noch in Arbeit) ──
+const BLOCK1 = [
 
-  :root {
-    --bg:        #0f1117;
-    --surface:   #1a1d27;
-    --surface2:  #222637;
-    --border:    #2e3347;
-    --accent:    #7c6af7;
-    --accent2:   #a89cf8;
-    --text:      #e8eaf6;
-    --muted:     #7b80a0;
-    --success:   #34d399;
-    --success-bg:#0d2e22;
-    --danger:    #f87171;
-    --danger-bg: #2e0d0d;
-    --radius:    12px;
-    --font:      'DM Sans', sans-serif;
-    --mono:      'DM Mono', monospace;
-  }
+];
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 2rem 1rem 4rem;
-  }
+// ── BLOCK 2: Web Services (Flask, REST, RPyC, RPC) ──
+const BLOCK2 = [
 
-  .quiz-shell {
-    width: 100%;
-    max-width: 680px;
-  }
-
-  /* ── Header ── */
-  .quiz-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-  .quiz-header .tag {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--accent2);
-    background: rgba(124,106,247,.15);
-    border: 1px solid rgba(124,106,247,.3);
-    padding: 4px 14px;
-    border-radius: 99px;
-    margin-bottom: 1rem;
-  }
-  .quiz-header h1 {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: .4rem;
-  }
-  .quiz-header p {
-    font-size: .9rem;
-    color: var(--muted);
-  }
-
-  /* ── Category filter ── */
-  .cat-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: 2rem;
-  }
-  .cat-btn {
-    padding: 6px 16px;
-    border-radius: 99px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--muted);
-    font-family: var(--font);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all .2s;
-  }
-  .cat-btn:hover { border-color: var(--accent); color: var(--accent2); }
-  .cat-btn.active {
-    background: rgba(124,106,247,.2);
-    border-color: var(--accent);
-    color: var(--accent2);
-    font-weight: 500;
-  }
-
-  /* ── Count + start ── */
-  .start-count {
-    font-size: 13px;
-    color: var(--muted);
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-  .start-btn {
-    display: block;
-    width: 100%;
-    padding: 14px;
-    background: var(--accent);
-    color: #fff;
-    font-family: var(--font);
-    font-size: 1rem;
-    font-weight: 600;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: opacity .2s, transform .1s;
-  }
-  .start-btn:hover { opacity: .88; }
-  .start-btn:active { transform: scale(.98); }
-
-  /* ── Progress ── */
-  .progress-wrap { margin-bottom: 1.5rem; }
-  .progress-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-  .progress-row .q-cat {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 2px 10px;
-    border-radius: 99px;
-    font-size: 12px;
-    color: var(--accent2);
-  }
-  .progress-track {
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 99px;
-    overflow: hidden;
-  }
-  .progress-fill {
-    height: 4px;
-    background: var(--accent);
-    border-radius: 99px;
-    transition: width .5s cubic-bezier(.4,0,.2,1);
-  }
-
-  /* ── Question card ── */
-  .q-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.75rem;
-    margin-bottom: 1rem;
-  }
-  .q-text {
-    font-size: 1.05rem;
-    font-weight: 500;
-    line-height: 1.6;
-    color: var(--text);
-    margin-bottom: 1.25rem;
-  }
-  .code-block {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-family: var(--mono);
-    font-size: 13px;
-    color: #a89cf8;
-    margin-bottom: 1.25rem;
-    white-space: pre;
-    overflow-x: auto;
-  }
-  .multi-note {
-    font-size: 12px;
-    color: var(--muted);
-    font-style: italic;
-    margin-bottom: 10px;
-  }
-
-  /* ── Options ── */
-  .option-btn {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    width: 100%;
-    text-align: left;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 13px 16px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    font-family: var(--font);
-    font-size: 14px;
-    color: var(--text);
-    transition: border-color .15s, background .15s;
-  }
-  .option-btn:hover:not(:disabled) {
-    border-color: var(--accent);
-    background: rgba(124,106,247,.08);
-  }
-  .option-btn.selected {
-    border-color: var(--accent);
-    background: rgba(124,106,247,.15);
-  }
-  .option-btn.correct {
-    border-color: var(--success);
-    background: var(--success-bg);
-    color: var(--success);
-  }
-  .option-btn.wrong {
-    border-color: var(--danger);
-    background: var(--danger-bg);
-    color: var(--danger);
-  }
-  .option-key {
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--muted);
-    min-width: 20px;
-    margin-top: 1px;
-  }
-  .option-btn.selected .option-key { color: var(--accent2); }
-  .option-btn.correct .option-key  { color: var(--success); }
-  .option-btn.wrong   .option-key  { color: var(--danger); }
-
-  /* ── Feedback ── */
-  .feedback {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-  }
-  .feedback.ok  { border-left: 3px solid var(--success); }
-  .feedback.bad { border-left: 3px solid var(--danger); }
-
-  /* ── Buttons ── */
-  .action-row {
-    display: flex;
-    gap: 10px;
-  }
-  .btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 10px;
-    font-family: var(--font);
-    font-size: .95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity .2s, transform .1s;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text);
-  }
-  .btn:hover { opacity: .8; }
-  .btn:active { transform: scale(.98); }
-  .btn-accent {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* ── Score screen ── */
-  .score-wrap {
-    text-align: center;
-    padding: 1rem 0 2rem;
-  }
-  .score-ring {
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    border: 4px solid var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem;
-    flex-direction: column;
-  }
-  .score-pct {
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1;
-  }
-  .score-pct-label {
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .score-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-bottom: .3rem;
-  }
-  .score-sub {
-    color: var(--muted);
-    font-size: .9rem;
-    margin-bottom: 2rem;
-  }
-  .score-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 2rem;
-  }
-  .score-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem;
-  }
-  .score-card .sc-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .score-card .sc-val   { font-size: 1.4rem; font-weight: 600; }
-  .sc-green { color: var(--success); }
-  .sc-red   { color: var(--danger); }
-</style>
-</head>
-<body>
-<div class="quiz-shell">
-
-  <div class="quiz-header">
-    <div class="tag">BVS2 · Block 2</div>
-    <h1>Quiz Vorbereitung</h1>
-    <p>Flask · REST · RPyC · RPC &amp; Architecture · Sockets &amp; asyncio</p>
-  </div>
-
-  <div id="app"></div>
-
-</div>
-
-<script>
-const ALL_Q = [
-  {cat:"Flask",q:"What is the default HTTP method for a Flask route?",code:null,opts:["DELETE","POST","PUT","GET"],ans:3,exp:"If no methods are specified in @app.route(), Flask only allows GET by default."},
+{cat:"Flask",q:"What is the default HTTP method for a Flask route?",code:null,opts:["DELETE","POST","PUT","GET"],ans:3,exp:"If no methods are specified in @app.route(), Flask only allows GET by default."},
   {cat:"Flask",q:"Which templating engine is commonly used in Flask?",code:null,opts:["Mako","Handlebars","EJS","Jinja2"],ans:3,exp:"Flask uses Jinja2 as its built-in templating engine. It allows {{ variable }} and {% if %} syntax in HTML files."},
   {cat:"Flask",q:"What is the purpose of the @app.route('/') decorator in Flask?",code:null,opts:["It registers a template filter","It defines the secret key for the app","It initializes a database connection","It binds a URL to a view function"],ans:3,exp:"@app.route() is a decorator that maps a URL path to a Python function (view function)."},
   {cat:"Flask",q:"Which line retrieves data from a POST request?",code:"from flask import request\n@app.route('/submit', methods=['POST'])\ndef submit():\n    ________",opts:["request['name']","name = form.request['name']","name = request.data['name']","name = request.form['name']"],ans:3,exp:"request.form is a dictionary containing form data sent via POST."},
@@ -405,86 +75,45 @@ const ALL_Q = [
   {cat:"RPC & Architecture",q:"Which of these is an object-oriented RPC option in Python?",code:null,opts:["JSON-RPC","XML-RPC","ONC RPC","RPyC"],ans:3,exp:"RPyC, Pyro5, and CORBA are object-oriented RPC frameworks. JSON-RPC and XML-RPC are function-level (procedural)."},
   {cat:"REST",q:"What is the anatomy of a typical RESTful response?",code:null,opts:["Only HTML and cookies","Only plain text","Binary data and headers only","Status code + JSON body with requested data or error info"],ans:3,exp:"REST responses typically include an HTTP status code (200, 404 etc.) and a JSON body with data or error information."},
   {cat:"REST",q:"Which HTTP method is used to partially update a resource?",code:null,opts:["POST","GET","PUT","PATCH"],ans:3,exp:"PATCH partially updates a resource (only the fields provided). PUT replaces the entire resource."},
+  {cat:"Flask",q:"What is the correct line to return JSON in Flask?",code:"from flask import Flask, jsonify\napp = Flask(__name__)\n@app.route('/data')\ndef data():\n    d = {'key': 'value'}\n    ________",opts:["jsonify(d)","return d","print(d)","return jsonify(d)"],ans:3,exp:"You must use return jsonify(d) — jsonify() converts the dict to a JSON response AND sets the correct Content-Type header. Just 'return d' won't work."},
+  {cat:"Flask",q:"What is the main purpose of AJAX in web applications?",code:null,opts:["Secure user authentication","Create HTML elements dynamically","Improve CSS styling","Fetch data from the server without reloading the page"],ans:3,exp:"AJAX (Asynchronous JavaScript and XML) lets you send HTTP requests in the background and update parts of the page without a full reload — used in chat.html with fetch('/messages')."},
+  {cat:"RPC & Architecture",q:"What is the role of a name service in distributed systems?",code:null,opts:["Define a unique routing protocol","Encrypt all communications","Start the main server thread","Map resource names to their locations"],ans:3,exp:"A name service maps human-readable names (like a service name or hostname) to their network addresses, similar to how DNS works."},
+  {cat:"Sockets & asyncio",q:"Which line sends a message with UDP?",code:"sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)\n________\nprint('Message sent.')",opts:["send(b'Hi')","sock.send(b'Hi')","sock.write(b'Hi')","sock.sendto(b'Hi', ('localhost', 9999))"],ans:3,exp:"UDP uses sendto() because there is no persistent connection — you must provide the destination address with every send. TCP uses sendall() after connect()."},
+  {cat:"RPC & Architecture",q:"What is rpcbind (formerly port mapper) used for?",code:null,opts:["To encrypt RPC traffic","To compile .x files","To generate stub code","To map RPC program numbers to ports (name service)"],ans:3,exp:"rpcbind is the name service for ONC RPC. Servers register their functions; clients ask rpcbind how to reach them."},
+  {cat:"RPC & Architecture",q:"What is rpcgen used for in ONC RPC?",code:null,opts:["To register services on the network","To resolve hostnames","To encrypt data","To generate C-based RPC client and server code from .x XDR files"],ans:3,exp:"rpcgen is a code generation tool. It reads .x XDR interface files and generates C stub code for client and server."},
+  {cat:"RPC & Architecture",q:"What does an IDL (Interface Definition Language) specify?",code:null,opts:["The encryption algorithm","The network topology","The thread pool size","Data types and function headers in a platform-independent way"],ans:3,exp:"An IDL like XDR or Protocol Buffers defines data types and function interfaces independently of language/platform, enabling heterogeneous systems."},
+  {cat:"RPC & Architecture",q:"What is the difference between a 'fat client' and a 'thin client'?",code:null,opts:["Fat clients use more RAM","Thin clients are physically smaller","Fat clients only run on servers","Fat client does more processing locally; thin client delegates most work to the server"],ans:3,exp:"A fat client handles more application logic itself; a thin client is lightweight and relies on the server for most processing."},
+  {cat:"RPC & Architecture",q:"What is LDAP used for?",code:null,opts:["To compile RPC code","To balance server load","To encrypt web traffic","To map names to people, organizations, or resources (directory service)"],ans:3,exp:"LDAP (Lightweight Directory Access Protocol) is a name/directory service that maps names to resources like users and organizations."},
+  {cat:"RPC & Architecture",q:"What is a drawback of using a name service?",code:null,opts:["It makes servers faster","It removes the need for IP addresses","It encrypts all traffic","It adds an indirection level and can be a single point of failure"],ans:3,exp:"A name service adds an extra lookup step and, being central, can become a bottleneck or single point of failure."},
+  {cat:"RPC & Architecture",q:"What is the benefit of a thread pool in a multi-threaded server?",code:null,opts:["It encrypts each request","It removes the need for threads","It guarantees message order","Threads are reused instead of created/deleted per request, saving overhead"],ans:3,exp:"Creating and destroying threads per request is costly. A thread pool reuses a fixed set of threads, reducing management overhead."},
+  {cat:"RPC & Architecture",q:"What is the difference between static and dynamic binding in RPC?",code:null,opts:["Static is faster, dynamic is slower always","Static uses UDP, dynamic uses TCP","They are the same","Static binding happens at compile time; dynamic binding happens at runtime"],ans:3,exp:"Static binding decides which object/method to call at compile time; dynamic binding decides at runtime, offering more flexibility."},
+  {cat:"RPC & Architecture",q:"What does a procedure stub do on the client side in RPC?",code:null,opts:["Stores the result in a database","Compiles the server code","Encrypts the connection","Provides the same interface as the server function and handles communication"],ans:3,exp:"The client stub looks like the real function, but instead marshals the arguments and handles network communication with the server."},
+  {cat:"RPC & Architecture",q:"What is a communication guarantee of 'at most once'?",code:null,opts:["Messages are sent infinitely","Acknowledgments with retries","Combine sequence numbers and acks","Sequence numbers ensure a message is never processed twice"],ans:3,exp:"'At most once' uses sequence numbers to detect and discard duplicates. 'At least once' uses acks+retries. 'Exactly once' combines both."},
+  {cat:"RPyC",q:"What is the on_connect hook used for in an RPyC service?",code:null,opts:["To close the connection","To compile the service","To register with rpcbind","To initialize per-connection state when a client connects"],ans:3,exp:"on_connect(self, conn) runs when a client connects — useful for setting up per-client state. on_disconnect runs at the end."},
+  {cat:"RPyC",q:"What is the default service a RPyC client exposes?",code:null,opts:["ThreadedService","RootService","MainService","VoidService"],ans:3,exp:"RPyC is symmetric — clients also expose a service. By default this is VoidService (exposes nothing). You can supply another with service=."},
+  {cat:"RPyC",q:"How do you pass constructor arguments to an RPyC service while keeping per-connection isolation?",code:null,opts:["Pass an instance MyService()","Use global variables","Use on_connect only","Use classpartial(MyService, args...)"],ans:3,exp:"classpartial from rpyc.utils.helpers lets you pre-bind constructor args while still giving each client its own instance."},
+  {cat:"RPyC",q:"What is the difference between passing a class vs an instance to ThreadedServer?",code:null,opts:["No difference","Class is faster","Instance is required always","Class → each client gets own instance; instance → all clients share the same object"],ans:3,exp:"Pass the class for per-connection isolation. Pass an instance MyService() if all clients should share the same state."},
+  {cat:"RPyC",q:"What does the ALIASES attribute do in an RPyC service?",code:null,opts:["Encrypts the service","Sets the port number","Limits client count","Provides service names for discovery via the registry"],ans:3,exp:"ALIASES = ['name1', 'name2'] gives the service discoverable names so clients can find it with rpyc.connect_by_service()."},
+  {cat:"REST",q:"What is SOAP in the context of web services?",code:null,opts:["A lightweight JSON format","A Python web framework","A type of socket","An operation-oriented protocol, mostly used in legacy enterprise systems"],ans:3,exp:"SOAP is an older, heavier operation-oriented web service protocol. REST (resource-oriented) is now more common; SOAP persists in legacy systems."},
+  {cat:"REST",q:"REST is resource-oriented. What is SOAP oriented around?",code:null,opts:["Resources","Documents","Files","Operations"],ans:3,exp:"REST organizes around resources (nouns, accessed via URLs). SOAP organizes around operations (actions/verbs)."},
+  {cat:"REST",q:"What replaced the older AJAX technique for fetching data without page reload?",code:null,opts:["WebSockets only","jQuery","XML-RPC","The Fetch API"],ans:3,exp:"AJAX (Asynchronous JavaScript and XML) is now largely replaced by the Fetch API, though the core concept (fetch data without reload) is the same."},
+  {cat:"REST",q:"What format does fetch() typically convert the response to in modern web apps?",code:"fetch('/api/data')\n  .then(response => response.____())\n  .then(data => console.log(data));",opts:["text","html","xml","json"],ans:3,exp:"response.json() parses the response body as JSON — the most common data format for REST APIs."},
+  {cat:"Flask",q:"What is the difference between a Web App and a Web Service?",code:null,opts:["Web apps use REST, web services don't","Web services have a GUI","They are identical","Web app client is a human; web service client is usually a machine"],ans:3,exp:"Web apps serve human users via browsers. Web services enable machine-to-machine interaction (often via REST APIs)."},
+  {cat:"Flask",q:"What runs JavaScript in a web page?",code:null,opts:["The web server","The database","The Python interpreter","The browser (client-side)"],ans:3,exp:"JavaScript executes client-side in the browser. Server-side code (PHP, Python/Flask) generates HTML before sending it."},
+  {cat:"Flask",q:"Which Python web framework is described as 'full-stack' with built-in admin, ORM, and auth?",code:null,opts:["Flask","FastAPI","Bottle","Django"],ans:3,exp:"Django is the batteries-included full-stack framework. Flask is a lightweight micro-framework requiring manual setup."},
+  {cat:"Flask",q:"Which modern Python framework offers async support and auto-generated API docs?",code:null,opts:["Flask","Django","Bottle","FastAPI"],ans:3,exp:"FastAPI is built for high-performance async APIs and auto-generates OpenAPI/Swagger documentation from type hints."},
+  {cat:"Flask",q:"What is CGI (Common Gateway Interface)?",code:null,opts:["A JavaScript library","A database protocol","A CSS framework","An older standard to call programs on web servers"],ans:3,exp:"CGI is an older standard for running server-side programs (e.g. Perl/Python scripts) to generate dynamic web content."},
+  {cat:"Flask",q:"What does the DOM (Document Object Model) represent?",code:null,opts:["The server's file system","A database schema","The network protocol","The structured representation of an HTML page that JS can manipulate"],ans:3,exp:"The DOM is the in-memory tree of the HTML page. JavaScript updates the DOM to change the page dynamically without reload."},
+  {cat:"Sockets & asyncio",q:"Which line connects the client socket?",code:"import socket\nclient = socket.socket()\n________\nclient.send(b'Hello')",opts:["connect(client, 9000)","client.listen()","client.bind(('localhost', 9000))","client.connect(('localhost', 9000))"],ans:3,exp:"client.connect((host, port)) connects to a server. bind() and listen() are server-side methods, not client-side."},
+  {cat:"Sockets & asyncio",q:"Which is the correct order for setting up a server socket in TCP using Python?",code:null,opts:["connect -> send -> recv","send -> recv -> close","accept -> connect -> bind","bind -> listen -> accept"],ans:3,exp:"A TCP server first binds to an address, then listens for connections, then accepts incoming clients. (connect is client-side.)"},
+  {cat:"Flask",q:"Which language can be used for server-side HTML generation?",code:null,opts:["HTML","JavaScript","CSS","PHP"],ans:3,exp:"PHP, Python (Flask/Django), Java etc. run server-side to generate HTML. JavaScript runs client-side; HTML and CSS are not programming languages."},
+  {cat:"REST",q:"Which of the following is true about JSON?",code:null,opts:["It supports comments","It is not human-readable","It is binary encoded","It is a text-based data format"],ans:3,exp:"JSON (JavaScript Object Notation) is a human-readable, text-based format. It does not support comments and is not binary."},
+  {cat:"REST",q:"Which property is essential to REST architecture?",code:null,opts:["Client-side session storage","SOAP envelopes","Browser-based authentication","Statelessness"],ans:3,exp:"Statelessness is a core REST constraint — the server stores no client context, each request is self-contained."},
+  {cat:"REST",q:"Which HTTP method should be used to modify an existing resource?",code:null,opts:["GET","OPTIONS","CONNECT","PUT"],ans:3,exp:"PUT modifies/replaces an existing resource. GET only reads, OPTIONS describes capabilities, CONNECT is for tunneling."},
   {cat:"Flask",q:"Where must Jinja2 template files be stored in a Flask project?",code:null,opts:["In the static/ folder","In the same folder as app.py","In a templates/ subfolder","Anywhere on the system"],ans:2,exp:"Flask's render_template() looks for HTML files in the templates/ subdirectory by default. This location is fixed by Flask convention."},
 ];
 
-function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
-function shuffleOpts(q){const s=shuffle([0,1,2,3]);return{...q,opts:s.map(i=>q.opts[i]),ans:s.indexOf(q.ans)}}
+// ── BLOCK 3: Containerization (Docker, ollama) — noch in Arbeit ──
+const BLOCK3 = [
 
-const CATS=["All","Flask","REST","RPyC","RPC & Architecture","Sockets & asyncio"];
-let questions=[],idx=0,score=0,sel=null,answered=false,phase='start',filterCat='All';
-
-function getQ(){
-  const p=filterCat==='All'?ALL_Q:ALL_Q.filter(q=>q.cat===filterCat);
-  return shuffle(p).map(shuffleOpts);
-}
-
-function render(){
-  const app=document.getElementById('app');
-  if(phase==='start'){
-    const cnt=filterCat==='All'?ALL_Q.length:ALL_Q.filter(q=>q.cat===filterCat).length;
-    app.innerHTML=`
-      <div class="cat-filter">${CATS.map(c=>`<button class="cat-btn${filterCat===c?' active':''}" onclick="setF('${c}')">${c}</button>`).join('')}</div>
-      <p class="start-count">${cnt} Fragen ausgewählt</p>
-      <button class="start-btn" onclick="start()">Quiz starten →</button>`;
-    return;
-  }
-  if(phase==='done'){
-    const pct=Math.round(score/questions.length*100);
-    const msg=pct>=80?'Sehr gut!':pct>=60?'Gut gemacht!':'Nochmal üben!';
-    app.innerHTML=`
-      <div class="score-wrap">
-        <div class="score-ring">
-          <div class="score-pct">${pct}%</div>
-          <div class="score-pct-label">Score</div>
-        </div>
-        <div class="score-title">${msg}</div>
-        <div class="score-sub">${score} von ${questions.length} Fragen richtig</div>
-        <div class="score-grid">
-          <div class="score-card"><div class="sc-label">Richtig</div><div class="sc-val sc-green">${score}</div></div>
-          <div class="score-card"><div class="sc-label">Falsch</div><div class="sc-val sc-red">${questions.length-score}</div></div>
-          <div class="score-card"><div class="sc-label">Gesamt</div><div class="sc-val">${questions.length}</div></div>
-        </div>
-        <button class="start-btn" onclick="phase='start';render()">Nochmal versuchen</button>
-      </div>`;
-    return;
-  }
-  const q=questions[idx];
-  const pct=(idx/questions.length*100).toFixed(1);
-  const keys=['A','B','C','D'];
-  app.innerHTML=`
-    <div class="progress-wrap">
-      <div class="progress-row">
-        <span>Frage ${idx+1} / ${questions.length}</span>
-        <span class="q-cat">${q.cat}</span>
-      </div>
-      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-    </div>
-    <div class="q-card">
-      <div class="q-text">${q.q}</div>
-      ${q.code?`<div class="code-block">${q.code}</div>`:''}
-      ${q.opts.map((o,i)=>{
-        let cls='option-btn';
-        if(answered){cls+=(i===q.ans)?' correct':(sel===i)?' wrong':'';}
-        else if(sel===i) cls+=' selected';
-        return `<button class="${cls}" ${answered?'disabled':''} onclick="pick(${i})">
-          <span class="option-key">${keys[i]}</span><span>${o}</span>
-        </button>`;
-      }).join('')}
-    </div>
-    ${answered?`<div class="feedback ${sel===q.ans?'ok':'bad'}">${sel===q.ans?'✓ Richtig':'✗ Falsch'} — ${q.exp}</div>`:''}
-    <div class="action-row">
-      ${!answered?`<button class="btn btn-accent" onclick="submit()">Antwort prüfen</button>`:''}
-      ${answered?`<button class="btn btn-accent" onclick="next()">${idx+1<questions.length?'Nächste Frage →':'Ergebnis anzeigen'}</button>`:''}
-    </div>`;
-}
-
-function setF(c){filterCat=c;render()}
-function start(){questions=getQ();idx=0;score=0;sel=null;answered=false;phase='quiz';render()}
-function pick(i){if(answered)return;sel=i;render()}
-function submit(){if(sel===null)return;answered=true;if(sel===questions[idx].ans)score++;render()}
-function next(){idx++;sel=null;answered=false;if(idx>=questions.length)phase='done';render()}
-render();
-</script>
-</body>
-</html>
+];

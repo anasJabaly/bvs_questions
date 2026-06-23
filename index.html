@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BVS2 — Klausur Quiz</title>
+
+<!-- Schriftarten -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Eigenes Stylesheet -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="quiz-shell">
+  <div class="quiz-header">
+    <div class="tag">BVS2 · Distributed Systems</div>
+    <h1>Klausur Quiz</h1>
+    <p>Wähle einen Block oder übe für die ganze Klausur</p>
+  </div>
+  <div id="app"></div>
+</div>
+
+<!-- Erst die Fragen laden, dann die Logik -->
+<script src="questions.js"></script>
+<script src="quiz.js"></script>
+</body>
+</html>
