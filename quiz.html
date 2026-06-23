@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BVS2 Block 2 — Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --surface2:  #222637;
+    --border:    #2e3347;
+    --accent:    #7c6af7;
+    --accent2:   #a89cf8;
+    --text:      #e8eaf6;
+    --muted:     #7b80a0;
+    --success:   #34d399;
+    --success-bg:#0d2e22;
+    --danger:    #f87171;
+    --danger-bg: #2e0d0d;
+    --radius:    12px;
+    --font:      'DM Sans', sans-serif;
+    --mono:      'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .quiz-shell {
+    width: 100%;
+    max-width: 680px;
+  }
+
+  /* ── Header ── */
+  .quiz-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .quiz-header .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    background: rgba(124,106,247,.15);
+    border: 1px solid rgba(124,106,247,.3);
+    padding: 4px 14px;
+    border-radius: 99px;
+    margin-bottom: 1rem;
+  }
+  .quiz-header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: .4rem;
+  }
+  .quiz-header p {
+    font-size: .9rem;
+    color: var(--muted);
+  }
+
+  /* ── Category filter ── */
+  .cat-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  .cat-btn {
+    padding: 6px 16px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .cat-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .cat-btn.active {
+    background: rgba(124,106,247,.2);
+    border-color: var(--accent);
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  /* ── Count + start ── */
+  .start-count {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .start-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .start-btn:hover { opacity: .88; }
+  .start-btn:active { transform: scale(.98); }
+
+  /* ── Progress ── */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .progress-row .q-cat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    color: var(--accent2);
+  }
+  .progress-track {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 4px;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width .5s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ── Question card ── */
+  .q-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    margin-bottom: 1rem;
+  }
+  .q-text {
+    font-size: 1.05rem;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+  }
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: #a89cf8;
+    margin-bottom: 1.25rem;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .multi-note {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 10px;
+  }
+
+  /* ── Options ── */
+  .option-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color .15s, background .15s;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(124,106,247,.08);
+  }
+  .option-btn.selected {
+    border-color: var(--accent);
+    background: rgba(124,106,247,.15);
+  }
+  .option-btn.correct {
+    border-color: var(--success);
+    background: var(--success-bg);
+    color: var(--success);
+  }
+  .option-btn.wrong {
+    border-color: var(--danger);
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+  .option-key {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 20px;
+    margin-top: 1px;
+  }
+  .option-btn.selected .option-key { color: var(--accent2); }
+  .option-btn.correct .option-key  { color: var(--success); }
+  .option-btn.wrong   .option-key  { color: var(--danger); }
+
+  /* ── Feedback ── */
+  .feedback {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+  .feedback.ok  { border-left: 3px solid var(--success); }
+  .feedback.bad { border-left: 3px solid var(--danger); }
+
+  /* ── Buttons ── */
+  .action-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: .95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .btn:hover { opacity: .8; }
+  .btn:active { transform: scale(.98); }
+  .btn-accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ── Score screen ── */
+  .score-wrap {
+    text-align: center;
+    padding: 1rem 0 2rem;
+  }
+  .score-ring {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 4px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    flex-direction: column;
+  }
+  .score-pct {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+  }
+  .score-pct-label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .score-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: .3rem;
+  }
+  .score-sub {
+    color: var(--muted);
+    font-size: .9rem;
+    margin-bottom: 2rem;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 2rem;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+  .score-card .sc-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .score-card .sc-val   { font-size: 1.4rem; font-weight: 600; }
+  .sc-green { color: var(--success); }
+  .sc-red   { color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="quiz-shell">
+
+  <div class="quiz-header">
+    <div class="tag">BVS2 · Block 2</div>
+    <h1>Quiz Vorbereitung</h1>
+    <p>Flask · REST · RPyC · RPC &amp; Architecture · Sockets &amp; asyncio</p>
+  </div>
+
+  <div id="app"></div>
+
+</div>
+
+<script>
+const ALL_Q = [
+  {cat:"Flask",q:"What is the default HTTP method for a Flask route?",code:null,opts:["DELETE","POST","PUT","GET"],ans:3,exp:"If no methods are specified in @app.route(), Flask only allows GET by default."},
+  {cat:"Flask",q:"Which templating engine is commonly used in Flask?",code:null,opts:["Mako","Handlebars","EJS","Jinja2"],ans:3,exp:"Flask uses Jinja2 as its built-in templating engine. It allows {{ variable }} and {% if %} syntax in HTML files."},
+  {cat:"Flask",q:"What is the purpose of the @app.route('/') decorator in Flask?",code:null,opts:["It registers a template filter","It defines the secret key for the app","It initializes a database connection","It binds a URL to a view function"],ans:3,exp:"@app.route() is a decorator that maps a URL path to a Python function (view function)."},
+  {cat:"Flask",q:"Which line retrieves data from a POST request?",code:"from flask import request\n@app.route('/submit', methods=['POST'])\ndef submit():\n    ________",opts:["request['name']","name = form.request['name']","name = request.data['name']","name = request.form['name']"],ans:3,exp:"request.form is a dictionary containing form data sent via POST."},
+  {cat:"Flask",q:"In an HTML form, which method sends data in the URL?",code:null,opts:["PUT","DELETE","POST","GET"],ans:3,exp:"GET appends form data to the URL as query parameters. POST sends data in the request body."},
+  {cat:"Flask",q:"What line stores a session value in Flask?",code:"from flask import session\n@app.route('/login')\ndef login():\n    ________",opts:["session.save('user')","store(session, 'admin')","user = session['admin']","session['user'] = 'admin'"],ans:3,exp:"Session is a dictionary-like object. Assign values with session['key'] = value."},
+  {cat:"Flask",q:"Which object is used to store session data in Flask?",code:null,opts:["response","request","config","session"],ans:3,exp:"The session object stores user-specific data between requests as a signed cookie."},
+  {cat:"Flask",q:"What is the correct syntax for a dynamic route in Flask with variable 'username'?",code:null,opts:["@app.route('/user/')","@app.route('/user/<name>')","@app.route('/user/<+username>')","@app.route('/user/<username>')"],ans:3,exp:"Flask uses <variable_name> syntax in route strings to capture URL segments as function parameters."},
+  {cat:"Flask",q:"Which line renders a Flask template?",code:"from flask import Flask, render_template\napp = Flask(__name__)\n@app.route('/')\ndef home():\n    ________",opts:["return index.html","print('index.html')","render_template('index.html')","return render_template('index.html')"],ans:3,exp:"render_template() loads an HTML file from templates/ and returns it as the HTTP response."},
+  {cat:"Flask",q:"Which line begins a form that submits to /submit?",code:"<form ________>\n  <input type=\"text\" name=\"user\">\n</form>",opts:["form=\"/submit\"","action=\"/submit\" method=\"LOAD\"","src=\"/submit\" method=\"GET\"","action=\"/submit\" method=\"POST\""],ans:3,exp:"The action attribute specifies where to send form data. method=\"POST\" sends data in the body."},
+  {cat:"Flask",q:"What attribute in a form specifies the server endpoint?",code:null,opts:["href","type","method","action"],ans:3,exp:"The action attribute tells the browser which URL to send the form data to when submitted."},
+  {cat:"Flask",q:"Which input type submits a form?",code:null,opts:["password","hidden","text","submit"],ans:3,exp:"<input type=\"submit\"> renders a clickable button that triggers form submission."},
+  {cat:"Flask",q:"Why is a secret key required in Flask sessions?",code:null,opts:["To connect to the database","To encrypt passwords","To define allowed routes","To cryptographically sign the session cookie"],ans:3,exp:"Flask signs the session cookie with the secret key to prevent clients from forging session data."},
+  {cat:"Flask",q:"What is the typical name of the Flask app object?",code:null,opts:["server","main","application","app"],ans:3,exp:"By convention: app = Flask(__name__). This name is used throughout the application."},
+  {cat:"Flask",q:"What enables dynamic behavior in HTML documents?",code:null,opts:["JSON","CSS","XML","JavaScript"],ans:3,exp:"JavaScript runs in the browser and enables interactivity — DOM manipulation, API calls, animations etc."},
+  {cat:"Flask",q:"Which language is commonly used for client-side execution in web pages?",code:null,opts:["Python","SQL","PHP","JavaScript"],ans:3,exp:"JavaScript is the only programming language that runs natively in all web browsers."},
+  {cat:"Flask",q:"Which line defines a RESTful GET route in Flask?",code:"from flask import Flask\napp = Flask(__name__)\n________\ndef get_items():\n    return {\"item\": \"value\"}",opts:["@app.route('/items', methods=['GET'])","@app.route('/items', method='GET')","route('/items', 'GET')","def route('/items'):"],ans:0,exp:"@app.route() with methods=['GET'] is the correct decorator syntax for a RESTful GET endpoint."},
+  {cat:"Flask",q:"How does Flask know which user is sending a message?",code:null,opts:["By IP address","By browser fingerprint","By reading the URL","By reading the username stored in the session"],ans:3,exp:"The username is saved in session at login. Flask reads it on every request to identify the sender."},
+  {cat:"Flask",q:"What HTTP status code is returned by return '', 204?",code:null,opts:["200 OK","404 Not Found","500 Internal Server Error","204 No Content"],ans:3,exp:"204 No Content means the request succeeded but there is no response body to send back."},
+  {cat:"REST",q:"What does REST stand for?",code:null,opts:["Remote Execution State Transfer","Reliable Event Streaming Technology","Rapid Endpoint Service Transfer","Representational State Transfer"],ans:3,exp:"REST = Representational State Transfer. An architectural style for HTTP-based APIs."},
+  {cat:"REST",q:"What is the correct content type for JSON in a REST response?",code:null,opts:["text/plain","text/json","application/x-json","application/json"],ans:3,exp:"The correct MIME type for JSON is 'application/json'."},
+  {cat:"REST",q:"Which HTTP method modifies an existing resource?",code:null,opts:["OPTIONS","GET","CONNECT","PUT"],ans:3,exp:"PUT replaces an existing resource completely. GET only reads, it does not modify."},
+  {cat:"REST",q:"Which HTTP method deletes a resource?",code:null,opts:["REMOVE","POST","GET","DELETE"],ans:3,exp:"DELETE removes a resource. Example: DELETE /users/42 deletes user 42."},
+  {cat:"REST",q:"Which HTTP method creates a new resource?",code:null,opts:["GET","PUT","PATCH","POST"],ans:3,exp:"POST creates a new resource. Example: POST /users with a JSON body creates a new user."},
+  {cat:"REST",q:"What does statelessness mean in REST?",code:null,opts:["Server caches all responses","Client sends minimal data","Server stores client state between requests","Each request contains all necessary information"],ans:3,exp:"REST is stateless: server stores no session state between requests. Every request must be self-contained."},
+  {cat:"REST",q:"What does jsonify() do in Flask?",code:null,opts:["Reads JSON from a file","Parses incoming JSON requests","Converts a list to a string","Converts a Python dict/list to a JSON HTTP response"],ans:3,exp:"jsonify() converts Python objects to JSON and sets the Content-Type header to application/json."},
+  {cat:"REST",q:"Which Python library is used to send REST API requests?",code:null,opts:["urllib3","jsonrpc","flask","requests"],ans:3,exp:"The requests library is the standard Python tool for HTTP calls: requests.get(), requests.post() etc."},
+  {cat:"REST",q:"What HTTP status code means 'OK'?",code:null,opts:["404","500","301","200"],ans:3,exp:"200 OK is the standard success response. 404=Not Found, 500=Server Error, 301=Redirect."},
+  {cat:"REST",q:"What HTTP status code means 'Not Found'?",code:null,opts:["200","500","403","404"],ans:3,exp:"404 Not Found means the requested resource doesn't exist on the server."},
+  {cat:"REST",q:"How do you get a URL query parameter in Flask?",code:"# URL: /greet?name=Alice",opts:["request.body.get('name')","request.form.get('name')","request.json['name']","request.args.get('name')"],ans:3,exp:"request.args contains URL query parameters (after ?). Use request.args.get('key') to retrieve them."},
+  {cat:"REST",q:"What is HATEOAS?",code:null,opts:["A Python package for Flask","A type of database","An HTTP status group","Hypermedia As The Engine Of Application State"],ans:3,exp:"HATEOAS means API responses include links to related resources for dynamic navigation."},
+  {cat:"REST",q:"Which transport protocol does gRPC use?",code:null,opts:["TCP/IP directly","HTTP/1.1","WebSockets","HTTP/2"],ans:3,exp:"gRPC is built on HTTP/2, enabling multiplexed streams and efficient binary serialization."},
+  {cat:"RPyC",q:"Which method defines a remote-accessible method in RPyC?",code:null,opts:["def private_method(self):","def __method__(self):","def method_name(self):","def exposed_method_name(self):"],ans:3,exp:"Only methods prefixed with 'exposed_' are accessible to remote clients. All others remain private."},
+  {cat:"RPyC",q:"In RPyC, which name is accessible remotely by default?",code:null,opts:["get_data","_get_data","__get_data__","exposed_get_data"],ans:3,exp:"Only 'exposed_' prefixed methods are visible to clients — RPyC's access control mechanism."},
+  {cat:"RPyC",q:"Which line connects to an RPyC service?",code:"import rpyc\n________\nresult = conn.root.get_answer()",opts:["conn.connect('localhost', 18861)","rpyc = connect('localhost', 18861)","connect(18861)","conn = rpyc.connect('localhost', 18861)"],ans:3,exp:"rpyc.connect(host, port) establishes a connection. conn.root gives access to the remote service."},
+  {cat:"RPyC",q:"What is the correct RPyC class definition?",code:"import rpyc\n________\n    def exposed_get_value(self):\n        return 42",opts:["def MyService(Service):","Service(MyService):","MyService = rpyc.Server()","class MyService(rpyc.Service):"],ans:3,exp:"RPyC services must subclass rpyc.Service and expose methods with the exposed_ prefix."},
+  {cat:"RPyC",q:"What does ThreadedServer do in RPyC?",code:null,opts:["Serves only one client at a time","Uses asyncio for concurrency","Fixed size thread pool","Creates a new thread for each client connection"],ans:3,exp:"ThreadedServer spawns a new OS thread for each connecting client — enabling concurrent handling."},
+  {cat:"RPyC",q:"What is conn.root in RPyC?",code:null,opts:["The server IP","The port number","The service class","A netref to the remote service instance"],ans:3,exp:"conn.root is a network reference to the remote service. Calling conn.root.method() runs it on the server."},
+  {cat:"RPyC",q:"What is a benefit of using a thread pool in a server?",code:null,opts:["Threads created per request","Only one client at a time","Improves DNS","Threads are reused to save overhead"],ans:3,exp:"Thread pools pre-create threads and reuse them, avoiding the overhead of creating/destroying per request."},
+  {cat:"RPyC",q:"What are the risks of arbitrary file operations via RPyC?",code:null,opts:["Slower server","Needs more RAM","Causes DNS errors","Attackers could read sensitive files or delete data"],ans:3,exp:"Unrestricted file access via RPC is dangerous — clients could read /etc/passwd or delete system files."},
+  {cat:"RPyC",q:"How can an RPyC server be secured over a network?",code:null,opts:["Use HTTP instead","Disable threading","Only allow localhost","Use SSL/TLS encryption and authentication"],ans:3,exp:"SSL/TLS encrypts data in transit. Authentication ensures only authorized clients can connect."},
+  {cat:"RPC & Architecture",q:"In RPC, which component handles marshalling and communication?",code:null,opts:["DNS resolver","Daemon","Server loop","Stub"],ans:3,exp:"The stub marshals function arguments into a message, sends it, and unmarshals the result."},
+  {cat:"RPC & Architecture",q:"What does marshalling mean in RPC?",code:null,opts:["Encrypting data","Starting a server","Caching results","Converting arguments into a transmittable format"],ans:3,exp:"Marshalling serializes Python objects into a byte stream for network transmission, then deserializes on the other side."},
+  {cat:"RPC & Architecture",q:"What is the main function of a name service?",code:null,opts:["Encrypt data","Open ports","Route messages","Resolve names to addresses"],ans:3,exp:"A name service (like DNS) translates human-readable names into IP addresses."},
+  {cat:"RPC & Architecture",q:"Key difference between P2P and client-server?",code:null,opts:["P2P is centralized","Client-server has no fault tolerance","Client-server always uses UDP","P2P nodes can act as both clients and servers"],ans:3,exp:"In P2P every node is equal and can be both client and server. In client-server, roles are fixed."},
+  {cat:"RPC & Architecture",q:"What is a drawback of P2P networks?",code:null,opts:["Central server failure","Low availability","Less redundancy","High discovery costs"],ans:3,exp:"Without a central registry, finding other nodes is harder and more costly in P2P networks."},
+  {cat:"RPC & Architecture",q:"In web services, who is typically the client?",code:null,opts:["A person using a mouse","A mobile app store","The database server","Another program or machine"],ans:3,exp:"Web services are machine-to-machine. The client is typically another program or automated system."},
+  {cat:"RPC & Architecture",q:"What does RPC stand for?",code:null,opts:["Remote Protocol Connection","Resource Protocol Call","Rapid Procedure Communication","Remote Procedure Call"],ans:3,exp:"RPC = Remote Procedure Call. Allows calling a function on another machine as if it were local."},
+  {cat:"RPC & Architecture",q:"Difference between RPC and RMI?",code:null,opts:["RPC is OOP, RMI is procedural","RPC uses HTTP, RMI uses TCP","They are identical","RPC is function-level, RMI is object-level"],ans:3,exp:"RPC provides function-level remote calls (procedural). RMI provides object-level access (OOP)."},
+  {cat:"Sockets & asyncio",q:"Which line completes the asyncio TCP server setup?",code:"async def main():\n    server = await asyncio.start_server(handler, 'localhost', 8888)\n    ________\n    await server.serve_forever()",opts:["server.bind()","await server.start()","listen(server)","async with server:"],ans:3,exp:"'async with server:' is the correct context manager for asyncio servers."},
+  {cat:"Sockets & asyncio",q:"Which line receives data from a server socket?",code:"client = socket.socket()\nclient.connect(('localhost', 8888))\n________\nprint(data)",opts:["data = client.read()","client.read(1024)","data = recv(client)","data = client.recv(1024)"],ans:3,exp:"socket.recv(bufsize) reads up to bufsize bytes. It blocks until data arrives."},
+  {cat:"Sockets & asyncio",q:"Correct way to execute an async function?",code:"async def say_hello():\n    return \"Hi\"\n________",opts:["say_hello().run()","await say_hello()","print(say_hello())","print(asyncio.run(say_hello()))"],ans:3,exp:"asyncio.run() starts the event loop, runs the coroutine, and returns its result."},
+  {cat:"Sockets & asyncio",q:"Which line receives datagram (UDP) data?",code:"sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)\nsock.bind(('localhost', 9999))\n________",opts:["recv(sock)","data = sock.recv(1024)","sock.receive()","data, addr = sock.recvfrom(1024)"],ans:3,exp:"UDP recvfrom() returns both data and sender's address (data, addr). TCP uses recv() without address."},
+  {cat:"Flask",q:"What would happen if two users submit a message at exactly the same time?",code:null,opts:["Flask queues them automatically","The server crashes immediately","Both messages are always saved correctly","A race condition could corrupt the file or lose a message"],ans:3,exp:"Simultaneous writes to a plain file are not atomic. Without a lock, two writes can interleave and corrupt the file."},
+  {cat:"Flask",q:"What would be a better alternative to storing chat messages in chat.txt?",code:null,opts:["A JSON file","A CSV file","Binary files","A database like SQLite or PostgreSQL"],ans:3,exp:"Databases support concurrent access, transactions, indexing, and querying — all things a plain text file cannot provide safely."},
+  {cat:"RPyC",q:"How can you allow access to public attributes like list methods in RPyC?",code:null,opts:["Use allow_public=True in the method","Rename attributes with exposed_","Use rpyc.Service.public()","Set allow_public_attrs: True in protocol_config"],ans:3,exp:"ThreadedServer(MyService, port=18861, protocol_config={'allow_public_attrs': True}) enables access to public attributes of returned objects."},
+  {cat:"RPC & Architecture",q:"What does XDR stand for in ONC RPC?",code:null,opts:["Extended Data Routing","Extra Domain Resolution","Extensible Data Relay","External Data Representation"],ans:3,exp:"XDR = External Data Representation. ONC RPC uses XDR for platform-independent data serialization between systems."},
+  {cat:"RPC & Architecture",q:"Which Python RPC option is considered high-performance and uses Protocol Buffers?",code:null,opts:["PyRPC","JSON-RPC","XML-RPC","gRPC"],ans:3,exp:"gRPC uses Protocol Buffers for efficient binary serialization over HTTP/2, making it the high-performance RPC option."},
+  {cat:"RPC & Architecture",q:"Which of these is an object-oriented RPC option in Python?",code:null,opts:["JSON-RPC","XML-RPC","ONC RPC","RPyC"],ans:3,exp:"RPyC, Pyro5, and CORBA are object-oriented RPC frameworks. JSON-RPC and XML-RPC are function-level (procedural)."},
+  {cat:"REST",q:"What is the anatomy of a typical RESTful response?",code:null,opts:["Only HTML and cookies","Only plain text","Binary data and headers only","Status code + JSON body with requested data or error info"],ans:3,exp:"REST responses typically include an HTTP status code (200, 404 etc.) and a JSON body with data or error information."},
+  {cat:"REST",q:"Which HTTP method is used to partially update a resource?",code:null,opts:["POST","GET","PUT","PATCH"],ans:3,exp:"PATCH partially updates a resource (only the fields provided). PUT replaces the entire resource."},
+  {cat:"Flask",q:"Where must Jinja2 template files be stored in a Flask project?",code:null,opts:["In the static/ folder","In the same folder as app.py","In a templates/ subfolder","Anywhere on the system"],ans:2,exp:"Flask's render_template() looks for HTML files in the templates/ subdirectory by default. This location is fixed by Flask convention."},
+];
+
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function shuffleOpts(q){const s=shuffle([0,1,2,3]);return{...q,opts:s.map(i=>q.opts[i]),ans:s.indexOf(q.ans)}}
+
+const CATS=["All","Flask","REST","RPyC","RPC & Architecture","Sockets & asyncio"];
+let questions=[],idx=0,score=0,sel=null,answered=false,phase='start',filterCat='All';
+
+function getQ(){
+  const p=filterCat==='All'?ALL_Q:ALL_Q.filter(q=>q.cat===filterCat);
+  return shuffle(p).map(shuffleOpts);
+}
+
+function render(){
+  const app=document.getElementById('app');
+  if(phase==='start'){
+    const cnt=filterCat==='All'?ALL_Q.length:ALL_Q.filter(q=>q.cat===filterCat).length;
+    app.innerHTML=`
+      <div class="cat-filter">${CATS.map(c=>`<button class="cat-btn${filterCat===c?' active':''}" onclick="setF('${c}')">${c}</button>`).join('')}</div>
+      <p class="start-count">${cnt} Fragen ausgewählt</p>
+      <button class="start-btn" onclick="start()">Quiz starten →</button>`;
+    return;
+  }
+  if(phase==='done'){
+    const pct=Math.round(score/questions.length*100);
+    const msg=pct>=80?'Sehr gut!':pct>=60?'Gut gemacht!':'Nochmal üben!';
+    app.innerHTML=`
+      <div class="score-wrap">
+        <div class="score-ring">
+          <div class="score-pct">${pct}%</div>
+          <div class="score-pct-label">Score</div>
+        </div>
+        <div class="score-title">${msg}</div>
+        <div class="score-sub">${score} von ${questions.length} Fragen richtig</div>
+        <div class="score-grid">
+          <div class="score-card"><div class="sc-label">Richtig</div><div class="sc-val sc-green">${score}</div></div>
+          <div class="score-card"><div class="sc-label">Falsch</div><div class="sc-val sc-red">${questions.length-score}</div></div>
+          <div class="score-card"><div class="sc-label">Gesamt</div><div class="sc-val">${questions.length}</div></div>
+        </div>
+        <button class="start-btn" onclick="phase='start';render()">Nochmal versuchen</button>
+      </div>`;
+    return;
+  }
+  const q=questions[idx];
+  const pct=(idx/questions.length*100).toFixed(1);
+  const keys=['A','B','C','D'];
+  app.innerHTML=`
+    <div class="progress-wrap">
+      <div class="progress-row">
+        <span>Frage ${idx+1} / ${questions.length}</span>
+        <span class="q-cat">${q.cat}</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="q-card">
+      <div class="q-text">${q.q}</div>
+      ${q.code?`<div class="code-block">${q.code}</div>`:''}
+      ${q.opts.map((o,i)=>{
+        let cls='option-btn';
+        if(answered){cls+=(i===q.ans)?' correct':(sel===i)?' wrong':'';}
+        else if(sel===i) cls+=' selected';
+        return `<button class="${cls}" ${answered?'disabled':''} onclick="pick(${i})">
+          <span class="option-key">${keys[i]}</span><span>${o}</span>
+        </button>`;
+      }).join('')}
+    </div>
+    ${answered?`<div class="feedback ${sel===q.ans?'ok':'bad'}">${sel===q.ans?'✓ Richtig':'✗ Falsch'} — ${q.exp}</div>`:''}
+    <div class="action-row">
+      ${!answered?`<button class="btn btn-accent" onclick="submit()">Antwort prüfen</button>`:''}
+      ${answered?`<button class="btn btn-accent" onclick="next()">${idx+1<questions.length?'Nächste Frage →':'Ergebnis anzeigen'}</button>`:''}
+    </div>`;
+}
+
+function setF(c){filterCat=c;render()}
+function start(){questions=getQ();idx=0;score=0;sel=null;answered=false;phase='quiz';render()}
+function pick(i){if(answered)return;sel=i;render()}
+function submit(){if(sel===null)return;answered=true;if(sel===questions[idx].ans)score++;render()}
+function next(){idx++;sel=null;answered=false;if(idx>=questions.length)phase='done';render()}
+render();
+</script>
+</body>
+</html>
