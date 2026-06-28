@@ -14,7 +14,9 @@ function getAllQuestions() {
 // ════════════════════════════════════════════
 //  QUIZ LOGIK
 // ════════════════════════════════════════════
-function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function shuffle(a){const r=[...a];
+  for(let i=r.length-1;i>0;i--)
+  {const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
 function shuffleOpts(q){
   const s=shuffle([0,1,2,3]);
   const opts=s.map(i=>q.opts[i]);
@@ -30,34 +32,37 @@ let activeBlock=null, activePool=[], activeCats=["All"], questions=[], idx=0, sc
 
 // ════════════════════════════════════════════
 //  SPEICHERN / FORTSETZEN (localStorage)
-//  Speichert den laufenden Quiz-Stand pro Block, damit man
-//  später dort weitermachen kann — auch nach Schließen der Seite.
+//  Speichert den laufenden Quiz-Stand separat pro Block!
+// Damit man später dort weitermachen kann — auch nach Schließen der Seite.
 // ════════════════════════════════════════════
-const SAVE_KEY = 'bvs2_quiz_progress';
+
+const SAVE_PREFIX = 'bvs2_quiz_progress_';
 
 function saveProgress(){
   // Nur einen laufenden (nicht beendeten) Durchlauf speichern
   if(phase!=='quiz' || !activeBlock) return;
   try {
     const data = { activeBlock, filterCat, questions, idx, score, sel, answered };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    // Speichert den Fortschritt unter einem block-spezifischen Key
+    localStorage.setItem(SAVE_PREFIX + activeBlock, JSON.stringify(data));
   } catch(e){ /* localStorage evtl. nicht verfügbar */ }
 }
 
-function loadProgress(){
+function loadProgress(blockKey){
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(SAVE_PREFIX + blockKey);
     return raw ? JSON.parse(raw) : null;
   } catch(e){ return null; }
 }
 
-function clearProgress(){
-  try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+function clearProgress(blockKey){
+  if(!blockKey) return;
+  try { localStorage.removeItem(SAVE_PREFIX + blockKey); } catch(e){}
 }
 
 function hasSavedFor(key){
-  const s = loadProgress();
-  return s && s.activeBlock===key && s.idx < (s.questions?.length||0);
+  const s = loadProgress(key);
+  return s && s.idx < (s.questions?.length||0);
 }
 
 function poolForBlock(key){
@@ -71,9 +76,16 @@ function render(){
   // ── PHASE 1: Block-Auswahl ──
   if(phase==='blockselect'){
     const b1=BLOCK1.length, b2=BLOCK2.length, b3=BLOCK3.length, all=b1+b2+b3;
-    const saved=loadProgress();
-    const savedKey = (saved && saved.idx < (saved.questions?.length||0)) ? saved.activeBlock : null;
-    const resumeTag = (key) => savedKey===key ? `<span class="bc-resume">▶ Frage ${saved.idx+1}/${saved.questions.length}</span>` : '';
+
+    // Prüft für jeden Block separat, ob ein Speicherstand existiert
+    const resumeTag = (key) => {
+      if (hasSavedFor(key)) {
+        const saved = loadProgress(key);
+        return `<span class="bc-resume">▶ Frage ${saved.idx+1}/${saved.questions.length}</span>`;
+      }
+      return '';
+    };
+
     app.innerHTML=`
       <div class="block-grid">
         <button class="block-card ${b1===0?'disabled':''}" ${b1===0?'':'onclick="selectBlock(\'block1\')"'}>
@@ -108,7 +120,7 @@ function render(){
 
   // ── PHASE 1b: Fortsetzen oder Neu starten ──
   if(phase==='resume'){
-    const saved=loadProgress();
+    const saved=loadProgress(activeBlock);
     const title = activeBlock==='all' ? 'Ganze Klausur' : BLOCKS[activeBlock].title;
     app.innerHTML=`
       <button class="back-link" onclick="phase='blockselect';render()">← Zurück zur Block-Auswahl</button>
@@ -181,16 +193,16 @@ function render(){
       ${q.code?`<div class="code-block">${q.code}</div>`:''}
       ${isMulti?`<div class="multi-note">Mehrere Antworten richtig — wähle alle zutreffenden aus</div>`:''}
       ${q.opts.map((o,i)=>{
-        let cls='option-btn';
-        if(answered){
-          const correct=isMulti?q.ans.includes(i):(i===q.ans);
-          const chosen=selArr.includes(i);
-          if(correct) cls+=' correct';
-          else if(chosen) cls+=' wrong';
-        } else if(selArr.includes(i)) cls+=' selected';
-        const mark=isMulti?`<span class="cb">${selArr.includes(i)?'☑':'☐'}</span>`:`<span class="option-key">${keys[i]}</span>`;
-        return `<button class="${cls}" ${answered?'disabled':''} onclick="pick(${i})">${mark}<span>${o}</span></button>`;
-      }).join('')}
+    let cls='option-btn';
+    if(answered){
+      const correct=isMulti?q.ans.includes(i):(i===q.ans);
+      const chosen=selArr.includes(i);
+      if(correct) cls+=' correct';
+      else if(chosen) cls+=' wrong';
+    } else if(selArr.includes(i)) cls+=' selected';
+    const mark=isMulti?`<span class="cb">${selArr.includes(i)?'☑':'☐'}</span>`:`<span class="option-key">${keys[i]}</span>`;
+    return `<button class="${cls}" ${answered?'disabled':''} onclick="pick(${i})">${mark}<span>${o}</span></button>`;
+  }).join('')}
     </div>
     ${answered?`<div class="feedback ${isCorrect()?'ok':'bad'}">${isCorrect()?'✓ Richtig':'✗ Falsch'} — ${q.exp}</div>`:''}
     <div class="action-row">
@@ -204,7 +216,6 @@ function selectBlock(key){
   activePool=poolForBlock(key);
   activeCats = key==='all' ? ["All"] : BLOCKS[key].cats;
   filterCat='All';
-  // Gibt es einen gespeicherten Stand für genau diesen Block? → Auswahl anzeigen
   if(hasSavedFor(key)){
     phase='resume';
   } else {
@@ -214,7 +225,7 @@ function selectBlock(key){
 }
 
 function resumeBlock(){
-  const s=loadProgress();
+  const s=loadProgress(activeBlock);
   if(!s){ phase='start'; render(); return; }
   activeBlock=s.activeBlock;
   activePool=poolForBlock(s.activeBlock);
@@ -226,13 +237,13 @@ function resumeBlock(){
 }
 
 function restartBlock(){
-  clearProgress();
+  clearProgress(activeBlock);
   phase='start';
   render();
 }
 
 function pauseToMenu(){
-  saveProgress();      // aktuellen Stand sichern
+  saveProgress();
   phase='blockselect';
   filterCat='All';
   render();
@@ -240,13 +251,12 @@ function pauseToMenu(){
 
 function setF(c){filterCat=c;render()}
 function getQ(){const p=filterCat==='All'?activePool:activePool.filter(q=>q.cat===filterCat);return shuffle(p).map(shuffleOpts);}
-function start(){clearProgress();questions=getQ();idx=0;score=0;sel=null;answered=false;phase='quiz';render()}
+function start(){clearProgress(activeBlock);questions=getQ();idx=0;score=0;sel=null;answered=false;phase='quiz';render()}
 
 function pick(i){
   if(answered)return;
   const q=questions[idx];
   if(q.multi){
-    // toggle selection in an array
     if(!Array.isArray(sel)) sel=[];
     if(sel.includes(i)) sel=sel.filter(x=>x!==i);
     else sel=[...sel,i];
@@ -269,19 +279,19 @@ function isCorrect(){
 
 function submit(){
   const q=questions[idx];
-  // require at least one selection
   if(q.multi){ if(!Array.isArray(sel)||sel.length===0) return; }
   else { if(sel===null) return; }
   answered=true;
   if(isCorrect()) score++;
-  saveProgress();   // nach jeder beantworteten Frage sichern
+  saveProgress();
   render();
 }
 
 function next(){
   idx++;sel=null;answered=false;
-  if(idx>=questions.length){ phase='done'; clearProgress(); }  // Durchlauf fertig → Stand löschen
+  if(idx>=questions.length){ phase='done'; clearProgress(activeBlock); }
   else { saveProgress(); }
   render();
 }
+
 render();
