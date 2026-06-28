@@ -28,7 +28,9 @@ function shuffleOpts(q){
   return {...q,opts,ans:s.indexOf(q.ans)};
 }
 
-let activeBlock=null, activePool=[], activeCats=["All"], questions=[], idx=0, score=0, sel=null, answered=false, phase='blockselect', filterCat='All';
+let activeBlock=null, activePool=[], activeCats=["All"],
+    questions=[], idx=0, score=0, sel=null, answered=false,
+    phase='blockselect', filterCat='All';
 
 // ════════════════════════════════════════════
 //  SPEICHERN / FORTSETZEN (localStorage)
