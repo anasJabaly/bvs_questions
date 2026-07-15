@@ -1,298 +1,455 @@
-// ════════════════════════════════════════════
-//  KONFIGURATION DER BLÖCKE
-// ════════════════════════════════════════════
-const BLOCKS = {
-  block1: { title: "Block 1", sub: "Socket Programming", questions: BLOCK1, cats: ["All","Sockets","asyncio","Distributed Systems","Python"] },
-  block2: { title: "Block 2", sub: "Web Services", questions: BLOCK2, cats: ["All","Flask","REST","RPyC","RPC & Architecture","Sockets & asyncio"] },
-  block3: { title: "Block 3", sub: "Containerization", questions: BLOCK3, cats: ["All","Docker","Distributed Systems","REST"] },
-};
+// Generische Quiz-App: Modul -> Themenblock -> Kategorie -> Quiz
 
-function getAllQuestions() {
-  return [...BLOCK1, ...BLOCK2, ...BLOCK3];
-}
-
-// ════════════════════════════════════════════
-//  QUIZ LOGIK
-// ════════════════════════════════════════════
-function shuffle(a){const r=[...a];
-  for(let i=r.length-1;i>0;i--)
-  {const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
-function shuffleOpts(q){
-  const s=shuffle([0,1,2,3]);
-  const opts=s.map(i=>q.opts[i]);
-  if(Array.isArray(q.ans)){
-    // multi-answer: remap every correct index to its new position
-    const ans=q.ans.map(a=>s.indexOf(a)).sort((a,b)=>a-b);
-    return {...q,opts,ans,multi:true};
+function shuffle(items) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
   }
-  return {...q,opts,ans:s.indexOf(q.ans)};
+  return result;
 }
 
-let activeBlock=null, activePool=[], activeCats=["All"],
-    questions=[], idx=0, score=0, sel=null, answered=false,
-    phase='blockselect', filterCat='All';
+function shuffleOpts(question) {
+  const order = shuffle(question.opts.map((_, index) => index));
+  const opts = order.map(index => question.opts[index]);
+  if (Array.isArray(question.ans)) {
+    const ans = question.ans.map(answer => order.indexOf(answer)).sort((a, b) => a - b);
+    return {...question, opts, ans, multi: true};
+  }
+  return {...question, opts, ans: order.indexOf(question.ans)};
+}
 
-// ════════════════════════════════════════════
-//  SPEICHERN / FORTSETZEN (localStorage)
-//  Speichert den laufenden Quiz-Stand separat pro Block!
-// Damit man später dort weitermachen kann — auch nach Schließen der Seite.
-// ════════════════════════════════════════════
+let activeModule = null;
+let activeBlock = null;
+let activePool = [];
+let activeCats = ["All"];
+let questions = [];
+let idx = 0;
+let score = 0;
+let sel = null;
+let answered = false;
+let phase = "moduleselect";
+let filterCat = "All";
 
-const SAVE_PREFIX = 'bvs2_quiz_progress_';
+const SAVE_PREFIX = "study_quiz_progress_v2_";
+const LEGACY_SAVE_PREFIX = "bvs2_quiz_progress_";
 
-function saveProgress(){
-  // Nur einen laufenden (nicht beendeten) Durchlauf speichern
-  if(phase!=='quiz' || !activeBlock) return;
+function saveKey(moduleKey, blockKey) {
+  return `${SAVE_PREFIX}${moduleKey}_${blockKey}`;
+}
+
+function saveProgress() {
+  if (phase !== "quiz" || !activeModule || !activeBlock) return;
   try {
-    const data = { activeBlock, filterCat, questions, idx, score, sel, answered };
-    // Speichert den Fortschritt unter einem block-spezifischen Key
-    localStorage.setItem(SAVE_PREFIX + activeBlock, JSON.stringify(data));
-  } catch(e){ /* localStorage evtl. nicht verfügbar */ }
-}
-
-function loadProgress(blockKey){
-  try {
-    const raw = localStorage.getItem(SAVE_PREFIX + blockKey);
-    return raw ? JSON.parse(raw) : null;
-  } catch(e){ return null; }
-}
-
-function clearProgress(blockKey){
-  if(!blockKey) return;
-  try { localStorage.removeItem(SAVE_PREFIX + blockKey); } catch(e){}
-}
-
-function hasSavedFor(key){
-  const s = loadProgress(key);
-  return s && s.idx < (s.questions?.length||0);
-}
-
-function poolForBlock(key){
-  if(key==='all') return getAllQuestions();
-  return BLOCKS[key].questions;
-}
-
-function render(){
-  const app=document.getElementById('app');
-
-  // ── PHASE 1: Block-Auswahl ──
-  if(phase==='blockselect'){
-    const b1=BLOCK1.length, b2=BLOCK2.length, b3=BLOCK3.length, all=b1+b2+b3;
-
-    // Prüft für jeden Block separat, ob ein Speicherstand existiert
-    const resumeTag = (key) => {
-      if (hasSavedFor(key)) {
-        const saved = loadProgress(key);
-        return `<span class="bc-resume">▶ Frage ${saved.idx+1}/${saved.questions.length}</span>`;
-      }
-      return '';
+    const data = {
+      activeModule,
+      activeBlock,
+      filterCat,
+      questions,
+      idx,
+      score,
+      sel,
+      answered,
     };
-
-    app.innerHTML=`
-      <div class="block-grid">
-        <button class="block-card ${b1===0?'disabled':''}" ${b1===0?'':'onclick="selectBlock(\'block1\')"'}>
-          ${b1===0?'<span class="bc-badge">in Arbeit</span>':''}
-          <div class="bc-title">Block 1</div>
-          <div class="bc-sub">Socket Programming</div>
-          <span class="bc-count">${b1===0?'kommt noch':b1+' Fragen'}</span>
-          ${resumeTag('block1')}
-        </button>
-        <button class="block-card" onclick="selectBlock('block2')">
-          <div class="bc-title">Block 2</div>
-          <div class="bc-sub">Web Services</div>
-          <span class="bc-count">${b2} Fragen</span>
-          ${resumeTag('block2')}
-        </button>
-        <button class="block-card ${b3===0?'disabled':''}" ${b3===0?'':'onclick="selectBlock(\'block3\')"'}>
-          ${b3===0?'<span class="bc-badge">in Arbeit</span>':''}
-          <div class="bc-title">Block 3</div>
-          <div class="bc-sub">Containerization</div>
-          <span class="bc-count">${b3===0?'kommt noch':b3+' Fragen'}</span>
-          ${resumeTag('block3')}
-        </button>
-        <button class="block-card" onclick="selectBlock('all')">
-          <div class="bc-title">🎓 Ganze Klausur</div>
-          <div class="bc-sub">Alle verfügbaren Blöcke gemischt</div>
-          <span class="bc-count">${all} Fragen</span>
-          ${resumeTag('all')}
-        </button>
-      </div>`;
-    return;
+    localStorage.setItem(saveKey(activeModule, activeBlock), JSON.stringify(data));
+  } catch (error) {
+    // Die App funktioniert auch, wenn localStorage nicht verfügbar ist.
   }
+}
 
-  // ── PHASE 1b: Fortsetzen oder Neu starten ──
-  if(phase==='resume'){
-    const saved=loadProgress(activeBlock);
-    const title = activeBlock==='all' ? 'Ganze Klausur' : BLOCKS[activeBlock].title;
-    app.innerHTML=`
-      <button class="back-link" onclick="phase='blockselect';render()">← Zurück zur Block-Auswahl</button>
-      <div class="resume-card">
-        <div class="resume-title">${title}</div>
-        <div class="resume-sub">Du hast einen gespeicherten Fortschritt:<br><strong>Frage ${saved.idx+1} von ${saved.questions.length}</strong> · ${saved.score} richtig bisher</div>
-        <div class="action-row" style="margin-top:1.5rem">
-          <button class="btn" onclick="restartBlock()">Neu starten</button>
-          <button class="btn btn-accent" onclick="resumeBlock()">Fortsetzen →</button>
-        </div>
-      </div>`;
-    return;
-  }
+function loadProgress(moduleKey, blockKey) {
+  try {
+    let raw = localStorage.getItem(saveKey(moduleKey, blockKey));
 
-  // ── PHASE 2: Kategorie + Start ──
-  if(phase==='start'){
-    if(activePool.length===0){
-      app.innerHTML=`
-        <button class="back-link" onclick="phase='blockselect';render()">← Zurück zur Block-Auswahl</button>
-        <div class="empty-note">Für diesen Block sind noch keine Fragen vorhanden.<br>Sie sind noch in Arbeit und kommen bald! 🚧</div>`;
-      return;
+    // Vorhandene BVS2-Speicherstände aus der alten App weiterverwenden.
+    if (!raw && moduleKey === "bvs2") {
+      raw = localStorage.getItem(LEGACY_SAVE_PREFIX + blockKey);
     }
-    const cnt=filterCat==='All'?activePool.length:activePool.filter(q=>q.cat===filterCat).length;
-    app.innerHTML=`
-      <button class="back-link" onclick="phase='blockselect';filterCat='All';render()">← Zurück zur Block-Auswahl</button>
-      <div class="cat-filter">${activeCats.map(c=>`<button class="cat-btn${filterCat===c?' active':''}" onclick="setF('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
-      <p class="start-count">${cnt} Fragen ausgewählt</p>
-      <button class="start-btn" ${cnt===0?'disabled':''} onclick="start()">Quiz starten →</button>`;
+
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return {...data, activeModule: data.activeModule || moduleKey};
+  } catch (error) {
+    return null;
+  }
+}
+
+function clearProgress(moduleKey, blockKey) {
+  if (!moduleKey || !blockKey) return;
+  try {
+    localStorage.removeItem(saveKey(moduleKey, blockKey));
+    if (moduleKey === "bvs2") {
+      localStorage.removeItem(LEGACY_SAVE_PREFIX + blockKey);
+    }
+  } catch (error) {
+    // Kein Abbruch, wenn localStorage gesperrt ist.
+  }
+}
+
+function hasSavedFor(moduleKey, blockKey) {
+  const saved = loadProgress(moduleKey, blockKey);
+  return Boolean(saved && saved.idx < (saved.questions?.length || 0));
+}
+
+function currentModule() {
+  return activeModule ? MODULES[activeModule] : null;
+}
+
+function moduleQuestionCount(moduleKey) {
+  return Object.values(MODULES[moduleKey].blocks)
+    .reduce((sum, block) => sum + block.questions.length, 0);
+}
+
+function poolForBlock(moduleKey, blockKey) {
+  const module = MODULES[moduleKey];
+  if (blockKey === "all") {
+    return Object.values(module.blocks).flatMap(block => block.questions);
+  }
+  return module.blocks[blockKey]?.questions || [];
+}
+
+function updateHeader() {
+  const tag = document.getElementById("header-tag");
+  const title = document.getElementById("header-title");
+  const subtitle = document.getElementById("header-subtitle");
+  const module = currentModule();
+
+  if (!module || phase === "moduleselect") {
+    tag.textContent = "Study Quiz";
+    title.textContent = "Klausurtrainer";
+    subtitle.textContent = "Wähle ein Modul und starte dein Quiz";
+    document.title = "Klausurtrainer";
     return;
   }
 
-  // ── PHASE 3: Ergebnis ──
-  if(phase==='done'){
-    const pct=Math.round(score/questions.length*100);
-    const msg=pct>=80?'Sehr gut!':pct>=60?'Gut gemacht!':'Nochmal üben!';
-    app.innerHTML=`
-      <div class="score-wrap">
-        <div class="score-ring"><div class="score-pct">${pct}%</div><div class="score-pct-label">Score</div></div>
-        <div class="score-title">${msg}</div>
-        <div class="score-sub">${score} von ${questions.length} Fragen richtig</div>
-        <div class="score-grid">
-          <div class="score-card"><div class="sc-label">Richtig</div><div class="sc-val sc-green">${score}</div></div>
-          <div class="score-card"><div class="sc-label">Falsch</div><div class="sc-val sc-red">${questions.length-score}</div></div>
-          <div class="score-card"><div class="sc-label">Gesamt</div><div class="sc-val">${questions.length}</div></div>
-        </div>
-        <div class="action-row">
-          <button class="btn" onclick="phase='blockselect';filterCat='All';render()">Block wechseln</button>
-          <button class="btn btn-accent" onclick="start()">Nochmal</button>
-        </div>
-      </div>`;
-    return;
-  }
+  tag.textContent = module.fullTitle;
+  title.textContent = "Klausur Quiz";
+  subtitle.textContent = "Wähle einen Themenblock oder übe das ganze Modul";
+  document.title = `${module.title} — Klausur Quiz`;
+}
 
-  // ── PHASE 4: Frage ──
-  const q=questions[idx];
-  const pct=(idx/questions.length*100).toFixed(1);
-  const keys=['A','B','C','D'];
-  const isMulti=q.multi===true;
-  const selArr=Array.isArray(sel)?sel:(sel===null?[]:[sel]);
-  app.innerHTML=`
-    <div class="quiz-topbar">
-      <button class="back-link" onclick="pauseToMenu()">⏸ Pause · zum Hauptmenü</button>
+function resumeTag(moduleKey, blockKey) {
+  if (!hasSavedFor(moduleKey, blockKey)) return "";
+  const saved = loadProgress(moduleKey, blockKey);
+  return `<span class="bc-resume">▶ Frage ${saved.idx + 1}/${saved.questions.length}</span>`;
+}
+
+function renderModuleSelect(app) {
+  const cards = Object.entries(MODULES).map(([key, module]) => {
+    const blockCount = Object.keys(module.blocks).length;
+    const questionCount = moduleQuestionCount(key);
+    return `
+      <button type="button" class="module-card" onclick="selectModule('${key}')">
+        <span class="module-icon" aria-hidden="true">${module.icon}</span>
+        <span class="module-copy">
+          <span class="module-title">${module.fullTitle}</span>
+          <span class="module-sub">${module.description}</span>
+          <span class="module-meta">${blockCount} Themenblöcke · ${questionCount} Fragen</span>
+        </span>
+        <span class="module-arrow" aria-hidden="true">→</span>
+      </button>`;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="section-intro">
+      <span class="eyebrow">Deine Module</span>
+      <h2>Was möchtest du heute üben?</h2>
     </div>
-    <div class="progress-wrap">
-      <div class="progress-row"><span>Frage ${idx+1} / ${questions.length}</span><span class="q-cat">${q.cat}</span></div>
-      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-    </div>
-    <div class="q-card">
-      <div class="q-text">${q.q}</div>
-      ${q.code?`<div class="code-block">${q.code}</div>`:''}
-      ${isMulti?`<div class="multi-note">Mehrere Antworten richtig — wähle alle zutreffenden aus</div>`:''}
-      ${q.opts.map((o,i)=>{
-    let cls='option-btn';
-    if(answered){
-      const correct=isMulti?q.ans.includes(i):(i===q.ans);
-      const chosen=selArr.includes(i);
-      if(correct) cls+=' correct';
-      else if(chosen) cls+=' wrong';
-    } else if(selArr.includes(i)) cls+=' selected';
-    const mark=isMulti?`<span class="cb">${selArr.includes(i)?'☑':'☐'}</span>`:`<span class="option-key">${keys[i]}</span>`;
-    return `<button class="${cls}" ${answered?'disabled':''} onclick="pick(${i})">${mark}<span>${o}</span></button>`;
-  }).join('')}
-    </div>
-    ${answered?`<div class="feedback ${isCorrect()?'ok':'bad'}">${isCorrect()?'✓ Richtig':'✗ Falsch'} — ${q.exp}</div>`:''}
-    <div class="action-row">
-      ${!answered?`<button class="btn btn-accent" onclick="submit()">Antwort prüfen</button>`:''}
-      ${answered?`<button class="btn btn-accent" onclick="next()">${idx+1<questions.length?'Nächste Frage →':'Ergebnis anzeigen'}</button>`:''}
+    <div class="module-grid">${cards}</div>`;
+}
+
+function renderBlockSelect(app) {
+  const module = currentModule();
+  const cards = Object.entries(module.blocks).map(([key, block]) => {
+    const count = block.questions.length;
+    return `
+      <button type="button" class="block-card ${count === 0 ? "disabled" : ""}"
+        ${count === 0 ? "disabled" : `onclick="selectBlock('${key}')"`}>
+        ${count === 0 ? '<span class="bc-badge">in Arbeit</span>' : ""}
+        <div class="bc-title">${block.title}</div>
+        <div class="bc-sub">${block.sub}</div>
+        <span class="bc-count">${count === 0 ? "kommt noch" : `${count} Fragen`}</span>
+        ${resumeTag(activeModule, key)}
+      </button>`;
+  }).join("");
+  const total = moduleQuestionCount(activeModule);
+
+  app.innerHTML = `
+    <button class="back-link module-back" onclick="showModuleMenu()">← Alle Module</button>
+    <div class="block-grid">
+      ${cards}
+      <button type="button" class="block-card full-width" onclick="selectBlock('all')">
+        <div class="bc-title">🎓 Ganzes Modul</div>
+        <div class="bc-sub">Alle verfügbaren Themen gemischt</div>
+        <span class="bc-count">${total} Fragen</span>
+        ${resumeTag(activeModule, "all")}
+      </button>
     </div>`;
 }
 
-function selectBlock(key){
-  activeBlock=key;
-  activePool=poolForBlock(key);
-  activeCats = key==='all' ? ["All"] : BLOCKS[key].cats;
-  filterCat='All';
-  if(hasSavedFor(key)){
-    phase='resume';
-  } else {
-    phase='start';
+function renderResume(app) {
+  const saved = loadProgress(activeModule, activeBlock);
+  if (!saved) {
+    phase = "start";
+    render();
+    return;
   }
+  const module = currentModule();
+  const title = activeBlock === "all" ? "Ganzes Modul" : module.blocks[activeBlock].title;
+  app.innerHTML = `
+    <button class="back-link" onclick="backToBlocks()">← Zurück zur Themenauswahl</button>
+    <div class="resume-card">
+      <div class="resume-title">${title}</div>
+      <div class="resume-sub">Du hast einen gespeicherten Fortschritt:<br>
+        <strong>Frage ${saved.idx + 1} von ${saved.questions.length}</strong> · ${saved.score} richtig bisher
+      </div>
+      <div class="action-row resume-actions">
+        <button class="btn" onclick="restartBlock()">Neu starten</button>
+        <button class="btn btn-accent" onclick="resumeBlock()">Fortsetzen →</button>
+      </div>
+    </div>`;
+}
+
+function renderStart(app) {
+  if (activePool.length === 0) {
+    app.innerHTML = `
+      <button class="back-link" onclick="backToBlocks()">← Zurück zur Themenauswahl</button>
+      <div class="empty-note">Für dieses Thema sind noch keine Fragen vorhanden.</div>`;
+    return;
+  }
+
+  const count = filterCat === "All"
+    ? activePool.length
+    : activePool.filter(question => question.cat === filterCat).length;
+
+  app.innerHTML = `
+    <button class="back-link" onclick="backToBlocks()">← Zurück zur Themenauswahl</button>
+    <div class="cat-filter">
+      ${activeCats.map(cat => `<button class="cat-btn${filterCat === cat ? " active" : ""}" onclick="setFilter('${cat.replace(/'/g, "\\'")}')">${cat}</button>`).join("")}
+    </div>
+    <p class="start-count">${count} Fragen ausgewählt</p>
+    <button class="start-btn" ${count === 0 ? "disabled" : ""} onclick="startQuiz()">Quiz starten →</button>`;
+}
+
+function renderDone(app) {
+  const percentage = Math.round(score / questions.length * 100);
+  const message = percentage >= 80 ? "Sehr gut!" : percentage >= 60 ? "Gut gemacht!" : "Nochmal üben!";
+  app.innerHTML = `
+    <div class="score-wrap">
+      <div class="score-ring"><div class="score-pct">${percentage}%</div><div class="score-pct-label">Score</div></div>
+      <div class="score-title">${message}</div>
+      <div class="score-sub">${score} von ${questions.length} Fragen richtig</div>
+      <div class="score-grid">
+        <div class="score-card"><div class="sc-label">Richtig</div><div class="sc-val sc-green">${score}</div></div>
+        <div class="score-card"><div class="sc-label">Falsch</div><div class="sc-val sc-red">${questions.length - score}</div></div>
+        <div class="score-card"><div class="sc-label">Gesamt</div><div class="sc-val">${questions.length}</div></div>
+      </div>
+      <div class="action-row">
+        <button class="btn" onclick="backToBlocks()">Themen wechseln</button>
+        <button class="btn btn-accent" onclick="startQuiz()">Nochmal</button>
+      </div>
+    </div>`;
+}
+
+function renderQuestion(app) {
+  const question = questions[idx];
+  const percentage = (idx / questions.length * 100).toFixed(1);
+  const keys = ["A", "B", "C", "D", "E", "F"];
+  const isMulti = question.multi === true;
+  const selected = Array.isArray(sel) ? sel : (sel === null ? [] : [sel]);
+
+  app.innerHTML = `
+    <div class="quiz-topbar">
+      <button class="back-link" onclick="pauseToMenu()">⏸ Pause · zur Themenauswahl</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-row"><span>Frage ${idx + 1} / ${questions.length}</span><span class="q-cat">${question.cat}</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${percentage}%"></div></div>
+    </div>
+    <div class="q-card">
+      <div class="q-text">${question.q}</div>
+      ${question.code ? `<div class="code-block">${question.code}</div>` : ""}
+      ${isMulti ? '<div class="multi-note">Mehrere Antworten richtig — wähle alle zutreffenden aus</div>' : ""}
+      ${question.opts.map((option, optionIndex) => {
+        let classes = "option-btn";
+        if (answered) {
+          const correct = isMulti ? question.ans.includes(optionIndex) : optionIndex === question.ans;
+          const chosen = selected.includes(optionIndex);
+          if (correct) classes += " correct";
+          else if (chosen) classes += " wrong";
+        } else if (selected.includes(optionIndex)) {
+          classes += " selected";
+        }
+        const mark = isMulti
+          ? `<span class="cb">${selected.includes(optionIndex) ? "☑" : "☐"}</span>`
+          : `<span class="option-key">${keys[optionIndex]}</span>`;
+        return `<button class="${classes}" ${answered ? "disabled" : ""} onclick="pick(${optionIndex})">${mark}<span>${option}</span></button>`;
+      }).join("")}
+    </div>
+    ${answered ? `
+      <div class="feedback ${isCorrect() ? "ok" : "bad"}">
+        <div>${isCorrect() ? "✓ Richtig" : "✗ Falsch"} — ${question.exp}</div>
+        ${question.source ? `<div class="source-note">Quelle: ${question.source}</div>` : ""}
+      </div>` : ""}
+    <div class="action-row">
+      ${!answered ? '<button class="btn btn-accent" onclick="submitAnswer()">Antwort prüfen</button>' : ""}
+      ${answered ? `<button class="btn btn-accent" onclick="nextQuestion()">${idx + 1 < questions.length ? "Nächste Frage →" : "Ergebnis anzeigen"}</button>` : ""}
+    </div>`;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  updateHeader();
+
+  if (phase === "moduleselect") return renderModuleSelect(app);
+  if (phase === "blockselect") return renderBlockSelect(app);
+  if (phase === "resume") return renderResume(app);
+  if (phase === "start") return renderStart(app);
+  if (phase === "done") return renderDone(app);
+  return renderQuestion(app);
+}
+
+function selectModule(moduleKey) {
+  activeModule = moduleKey;
+  activeBlock = null;
+  filterCat = "All";
+  phase = "blockselect";
   render();
 }
 
-function resumeBlock(){
-  const s=loadProgress(activeBlock);
-  if(!s){ phase='start'; render(); return; }
-  activeBlock=s.activeBlock;
-  activePool=poolForBlock(s.activeBlock);
-  activeCats = s.activeBlock==='all' ? ["All"] : BLOCKS[s.activeBlock].cats;
-  filterCat=s.filterCat||'All';
-  questions=s.questions; idx=s.idx; score=s.score; sel=s.sel; answered=s.answered;
-  phase='quiz';
+function showModuleMenu() {
+  activeModule = null;
+  activeBlock = null;
+  filterCat = "All";
+  phase = "moduleselect";
   render();
 }
 
-function restartBlock(){
-  clearProgress(activeBlock);
-  phase='start';
+function backToBlocks() {
+  activeBlock = null;
+  filterCat = "All";
+  phase = "blockselect";
   render();
 }
 
-function pauseToMenu(){
+function selectBlock(blockKey) {
+  activeBlock = blockKey;
+  activePool = poolForBlock(activeModule, blockKey);
+  activeCats = blockKey === "all"
+    ? ["All"]
+    : currentModule().blocks[blockKey].cats;
+  filterCat = "All";
+  phase = hasSavedFor(activeModule, blockKey) ? "resume" : "start";
+  render();
+}
+
+function resumeBlock() {
+  const saved = loadProgress(activeModule, activeBlock);
+  if (!saved) {
+    phase = "start";
+    render();
+    return;
+  }
+
+  activeModule = saved.activeModule;
+  activeBlock = saved.activeBlock;
+  activePool = poolForBlock(activeModule, activeBlock);
+  activeCats = activeBlock === "all" ? ["All"] : currentModule().blocks[activeBlock].cats;
+  filterCat = saved.filterCat || "All";
+  questions = saved.questions;
+  idx = saved.idx;
+  score = saved.score;
+  sel = saved.sel;
+  answered = saved.answered;
+  phase = "quiz";
+  render();
+}
+
+function restartBlock() {
+  clearProgress(activeModule, activeBlock);
+  phase = "start";
+  render();
+}
+
+function pauseToMenu() {
   saveProgress();
-  phase='blockselect';
-  filterCat='All';
+  filterCat = "All";
+  phase = "blockselect";
   render();
 }
 
-function setF(c){filterCat=c;render()}
-function getQ(){const p=filterCat==='All'?activePool:activePool.filter(q=>q.cat===filterCat);return shuffle(p).map(shuffleOpts);}
-function start(){clearProgress(activeBlock);questions=getQ();idx=0;score=0;sel=null;answered=false;phase='quiz';render()}
+function setFilter(category) {
+  filterCat = category;
+  render();
+}
 
-function pick(i){
-  if(answered)return;
-  const q=questions[idx];
-  if(q.multi){
-    if(!Array.isArray(sel)) sel=[];
-    if(sel.includes(i)) sel=sel.filter(x=>x!==i);
-    else sel=[...sel,i];
+function getQuestions() {
+  const pool = filterCat === "All"
+    ? activePool
+    : activePool.filter(question => question.cat === filterCat);
+  return shuffle(pool).map(shuffleOpts);
+}
+
+function startQuiz() {
+  clearProgress(activeModule, activeBlock);
+  questions = getQuestions();
+  idx = 0;
+  score = 0;
+  sel = null;
+  answered = false;
+  phase = "quiz";
+  render();
+}
+
+function pick(optionIndex) {
+  if (answered) return;
+  const question = questions[idx];
+  if (question.multi) {
+    if (!Array.isArray(sel)) sel = [];
+    sel = sel.includes(optionIndex)
+      ? sel.filter(value => value !== optionIndex)
+      : [...sel, optionIndex];
   } else {
-    sel=i;
+    sel = optionIndex;
   }
   render();
 }
 
-function isCorrect(){
-  const q=questions[idx];
-  if(q.multi){
-    if(!Array.isArray(sel)) return false;
-    const a=[...q.ans].sort((x,y)=>x-y);
-    const s=[...sel].sort((x,y)=>x-y);
-    return a.length===s.length && a.every((v,k)=>v===s[k]);
+function isCorrect() {
+  const question = questions[idx];
+  if (question.multi) {
+    if (!Array.isArray(sel)) return false;
+    const answer = [...question.ans].sort((a, b) => a - b);
+    const selected = [...sel].sort((a, b) => a - b);
+    return answer.length === selected.length && answer.every((value, index) => value === selected[index]);
   }
-  return sel===q.ans;
+  return sel === question.ans;
 }
 
-function submit(){
-  const q=questions[idx];
-  if(q.multi){ if(!Array.isArray(sel)||sel.length===0) return; }
-  else { if(sel===null) return; }
-  answered=true;
-  if(isCorrect()) score++;
+function submitAnswer() {
+  const question = questions[idx];
+  if (question.multi) {
+    if (!Array.isArray(sel) || sel.length === 0) return;
+  } else if (sel === null) {
+    return;
+  }
+
+  answered = true;
+  if (isCorrect()) score++;
   saveProgress();
   render();
 }
 
-function next(){
-  idx++;sel=null;answered=false;
-  if(idx>=questions.length){ phase='done'; clearProgress(activeBlock); }
-  else { saveProgress(); }
+function nextQuestion() {
+  idx++;
+  sel = null;
+  answered = false;
+  if (idx >= questions.length) {
+    phase = "done";
+    clearProgress(activeModule, activeBlock);
+  } else {
+    saveProgress();
+  }
   render();
 }
 

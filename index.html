@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BVS2 — Klausur Quiz</title>
+<title>Klausurtrainer</title>
 
 <!-- Schriftarten -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,15 +16,17 @@
 <body>
 <div class="quiz-shell">
   <div class="quiz-header">
-    <div class="tag">BVS2 · Distributed Systems</div>
-    <h1>Klausur Quiz</h1>
-    <p>Wähle einen Block oder übe für die ganze Klausur</p>
+    <div class="tag" id="header-tag">Study Quiz</div>
+    <h1 id="header-title">Klausurtrainer</h1>
+    <p id="header-subtitle">Wähle ein Modul und starte dein Quiz</p>
   </div>
   <div id="app"></div>
 </div>
 
-<!-- Erst die Fragen laden, dann die Logik -->
+<!-- Erst alle Fragendaten und die Modul-Konfiguration laden, dann die Logik -->
 <script src="questions.js"></script>
+<script src="bwr-questions.js"></script>
+<script src="modules.js"></script>
 <script src="quiz.js"></script>
 </body>
 </html>
