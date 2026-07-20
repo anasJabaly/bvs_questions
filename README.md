@@ -4,8 +4,16 @@ Eine kleine, frameworkfreie Webapp zum Üben mehrerer Studienmodule. Aktuell sin
 
 - **BVS2** mit Socket Programming, Web Services und Containerization
 - **BWR** mit sechs Vorlesungsblöcken und Fragen aus den Unterlagen des Sommersemesters 2026
+- **DBII** (Datenbanken II) mit acht Themenblöcken und über 100 Fragen aus den Vorlesungsfolien 1–12 des Sommersemesters 2026: Erweitertes ERM, Objektrelationale Erweiterungen, SQL für Data Science, JDBC, Transaktionen, Trigger, Zugriffspfade sowie DB Tuning und NoSQL
 
 Die App unterstützt Einzel- und Mehrfachantworten, Kategorien, gemischte Gesamtquizze und separat gespeicherte Fortschritte je Modul und Themenblock.
+
+### Weitere Features
+
+- **Ergebnis-Statistiken**: Pro Themenblock werden bestes und letztes Ergebnis gespeichert und als Fortschrittsbalken auf den Modul- und Blockkarten angezeigt.
+- **Fehler-Review**: Nach einem Durchlauf lassen sich per Klick nur die falsch beantworteten Fragen erneut üben.
+- **Live-Zähler**: Während des Quiz zeigen Pills in der Kopfzeile den aktuellen Stand (richtig / falsch).
+- **Tastatursteuerung**: Antworten mit den Tasten `1`–`6` bzw. `A`–`F` auswählen, mit `Enter` prüfen und weiterblättern.
 
 ## Lokal starten
 

@@ -169,3 +169,62 @@
   .module-card { padding:1rem; }
   .module-icon { flex-basis:42px; height:42px; }
 }
+
+/* ── Statistik-Anzeige (Modul-Karten) ── */
+.module-stats {
+  display:flex; align-items:center; gap:8px;
+  margin-top:8px; font-size:11px; font-weight:600; color:var(--muted);
+}
+.module-stats-bar {
+  flex:0 0 60px; height:5px; border-radius:99px;
+  background:var(--surface2); overflow:hidden;
+}
+.module-stats-fill {
+  display:block; height:100%; border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Statistik-Anzeige (Block-Karten) ── */
+.bc-stats { display:flex; align-items:center; gap:8px; margin-top:10px; }
+.bc-bar {
+  flex:1; height:5px; border-radius:99px;
+  background:var(--surface2); overflow:hidden;
+}
+.bc-bar-fill {
+  display:block; height:100%; border-radius:99px;
+  background:var(--danger); transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+.bc-bar-fill.good { background:var(--success); }
+.bc-best {
+  flex:0 0 auto; font-size:10px; font-weight:600; color:var(--muted);
+}
+
+/* ── Live-Pills in der Quiz-Topbar ── */
+.quiz-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap;
+}
+.quiz-pills { display:flex; align-items:center; gap:6px; margin-bottom:1rem; }
+.pill {
+  font-size:12px; font-weight:600; padding:3px 11px; border-radius:99px;
+  border:1px solid var(--border); background:var(--surface2);
+}
+.pill-ok { color:var(--success); border-color:rgba(52,211,153,.35); background:var(--success-bg); }
+.pill-bad { color:var(--danger); border-color:rgba(248,113,113,.35); background:var(--danger-bg); }
+.pill-review { color:var(--accent2); border-color:rgba(124,106,247,.4); background:rgba(124,106,247,.14); }
+
+/* ── Fehler-üben-Button (Ergebnisscreen) ── */
+.btn-review {
+  width:100%; margin-bottom:1rem; padding:13px;
+  border-radius:10px; font-family:var(--font); font-size:.95rem; font-weight:600;
+  cursor:pointer; transition:opacity .2s, transform .1s;
+  color:var(--accent2); background:rgba(124,106,247,.14);
+  border:1.5px solid rgba(124,106,247,.4);
+}
+.btn-review:hover { opacity:.85; }
+.btn-review:active { transform:scale(.98); }
+
+/* ── Score-Ring Farbvarianten ── */
+.score-ring.ring-good { border-color:var(--success); }
+.score-ring.ring-bad { border-color:var(--danger); }

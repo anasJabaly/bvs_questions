@@ -28,6 +28,62 @@ const MODULES = {
       },
     },
   },
+  dbii: {
+    title: "DBII",
+    fullTitle: "Datenbanken II",
+    description: "EERM, Objektrelational, Transaktionen, Trigger, Indexe und NoSQL",
+    icon: "◈",
+    blocks: {
+      b1: {
+        title: "Block 1",
+        sub: "Erweitertes ERM",
+        questions: DBII_B1,
+        cats: ["All", "Schlüssel", "Beziehungstypen", "IS-A & Vererbung", "EERM-Konzepte", "Relationale Abbildung"],
+      },
+      b2: {
+        title: "Block 2",
+        sub: "Objektrelationale Erweiterungen",
+        questions: DBII_B2,
+        cats: ["All", "SQL:1999", "ROW & ARRAY", "UDTs", "Typed Tables & REF", "PostgreSQL"],
+      },
+      b3: {
+        title: "Block 3",
+        sub: "SQL für Data Science",
+        questions: DBII_B3,
+        cats: ["All", "Window Functions", "Frames", "Anwendung"],
+      },
+      b4: {
+        title: "Block 4",
+        sub: "DB-Anbindung & JDBC",
+        questions: DBII_B4,
+        cats: ["All", "JDBC-Grundlagen", "ResultSet", "Prepared Statements", "SQL Injection"],
+      },
+      b5: {
+        title: "Block 5",
+        sub: "Transaktionen",
+        questions: DBII_B5,
+        cats: ["All", "Anomalien", "Serialisierbarkeit", "Sperrverfahren", "Optimistische Synchronisation"],
+      },
+      b6: {
+        title: "Block 6",
+        sub: "Trigger & Integrität",
+        questions: DBII_B6,
+        cats: ["All", "Integritätsbedingungen", "Trigger-Grundlagen", "Ausführungsmodelle", "Triggerfallen"],
+      },
+      b7: {
+        title: "Block 7",
+        sub: "Zugriffspfade & Optimierung",
+        questions: DBII_B7,
+        cats: ["All", "Anfrageoptimierung", "Index-Grundlagen", "B-Bäume", "Spezialindexe"],
+      },
+      b8: {
+        title: "Block 8",
+        sub: "DB Tuning & NoSQL",
+        questions: DBII_B8,
+        cats: ["All", "Tuning", "NoSQL-Grundlagen", "Key-Value & Document", "Column & Graph"],
+      },
+    },
+  },
   bwr: {
     title: "BWR",
     fullTitle: "Betriebswirtschaft und Recht",

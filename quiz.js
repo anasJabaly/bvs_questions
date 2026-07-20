@@ -30,9 +30,48 @@ let sel = null;
 let answered = false;
 let phase = "moduleselect";
 let filterCat = "All";
+let wrongs = [];          // falsch beantwortete Fragen des aktuellen Laufs
+let reviewMode = false;   // true, wenn gerade nur Fehler geübt werden
 
 const SAVE_PREFIX = "study_quiz_progress_v2_";
 const LEGACY_SAVE_PREFIX = "bvs2_quiz_progress_";
+const STATS_KEY = "study_quiz_stats_v1";
+
+// ── Ergebnis-Statistiken (bestes/letztes Ergebnis pro Themenblock) ──
+function loadStats() {
+  try {
+    return JSON.parse(localStorage.getItem(STATS_KEY)) || {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function statsFor(moduleKey, blockKey) {
+  return loadStats()[`${moduleKey}_${blockKey}`] || null;
+}
+
+function recordStats(moduleKey, blockKey, percentage) {
+  try {
+    const stats = loadStats();
+    const key = `${moduleKey}_${blockKey}`;
+    const entry = stats[key] || {best: 0, last: 0, attempts: 0};
+    entry.last = percentage;
+    entry.best = Math.max(entry.best, percentage);
+    entry.attempts += 1;
+    stats[key] = entry;
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  } catch (error) {
+    // Statistiken sind optional — App läuft auch ohne localStorage.
+  }
+}
+
+function moduleStats(moduleKey) {
+  const blockKeys = Object.keys(MODULES[moduleKey].blocks);
+  const entries = blockKeys.map(blockKey => statsFor(moduleKey, blockKey)).filter(Boolean);
+  if (entries.length === 0) return null;
+  const avgBest = Math.round(entries.reduce((sum, entry) => sum + entry.best, 0) / entries.length);
+  return {practiced: entries.length, total: blockKeys.length, avgBest};
+}
 
 function saveKey(moduleKey, blockKey) {
   return `${SAVE_PREFIX}${moduleKey}_${blockKey}`;
@@ -50,6 +89,8 @@ function saveProgress() {
       score,
       sel,
       answered,
+      wrongs,
+      reviewMode,
     };
     localStorage.setItem(saveKey(activeModule, activeBlock), JSON.stringify(data));
   } catch (error) {
@@ -138,6 +179,10 @@ function renderModuleSelect(app) {
   const cards = Object.entries(MODULES).map(([key, module]) => {
     const blockCount = Object.keys(module.blocks).length;
     const questionCount = moduleQuestionCount(key);
+    const stats = moduleStats(key);
+    const statsLine = stats
+      ? `<span class="module-stats"><span class="module-stats-bar"><span class="module-stats-fill" style="width:${stats.avgBest}%"></span></span>${stats.practiced}/${stats.total} Blöcke geübt · Ø Best ${stats.avgBest}%</span>`
+      : "";
     return `
       <button type="button" class="module-card" onclick="selectModule('${key}')">
         <span class="module-icon" aria-hidden="true">${module.icon}</span>
@@ -145,6 +190,7 @@ function renderModuleSelect(app) {
           <span class="module-title">${module.fullTitle}</span>
           <span class="module-sub">${module.description}</span>
           <span class="module-meta">${blockCount} Themenblöcke · ${questionCount} Fragen</span>
+          ${statsLine}
         </span>
         <span class="module-arrow" aria-hidden="true">→</span>
       </button>`;
@@ -162,6 +208,10 @@ function renderBlockSelect(app) {
   const module = currentModule();
   const cards = Object.entries(module.blocks).map(([key, block]) => {
     const count = block.questions.length;
+    const stats = statsFor(activeModule, key);
+    const statsLine = stats
+      ? `<div class="bc-stats"><div class="bc-bar"><div class="bc-bar-fill ${stats.best >= 80 ? "good" : ""}" style="width:${stats.best}%"></div></div><span class="bc-best">Best ${stats.best}%</span></div>`
+      : "";
     return `
       <button type="button" class="block-card ${count === 0 ? "disabled" : ""}"
         ${count === 0 ? "disabled" : `onclick="selectBlock('${key}')"`}>
@@ -170,6 +220,7 @@ function renderBlockSelect(app) {
         <div class="bc-sub">${block.sub}</div>
         <span class="bc-count">${count === 0 ? "kommt noch" : `${count} Fragen`}</span>
         ${resumeTag(activeModule, key)}
+        ${statsLine}
       </button>`;
   }).join("");
   const total = moduleQuestionCount(activeModule);
@@ -233,10 +284,12 @@ function renderStart(app) {
 
 function renderDone(app) {
   const percentage = Math.round(score / questions.length * 100);
-  const message = percentage >= 80 ? "Sehr gut!" : percentage >= 60 ? "Gut gemacht!" : "Nochmal üben!";
+  const message = percentage === 100 ? "Perfekt! 🎉" : percentage >= 80 ? "Sehr gut!" : percentage >= 60 ? "Gut gemacht!" : "Nochmal üben!";
+  const ringClass = percentage >= 80 ? "ring-good" : percentage >= 60 ? "" : "ring-bad";
+  const wrongCount = wrongs.length;
   app.innerHTML = `
     <div class="score-wrap">
-      <div class="score-ring"><div class="score-pct">${percentage}%</div><div class="score-pct-label">Score</div></div>
+      <div class="score-ring ${ringClass}"><div class="score-pct">${percentage}%</div><div class="score-pct-label">${reviewMode ? "Fehler-Review" : "Score"}</div></div>
       <div class="score-title">${message}</div>
       <div class="score-sub">${score} von ${questions.length} Fragen richtig</div>
       <div class="score-grid">
@@ -244,6 +297,7 @@ function renderDone(app) {
         <div class="score-card"><div class="sc-label">Falsch</div><div class="sc-val sc-red">${questions.length - score}</div></div>
         <div class="score-card"><div class="sc-label">Gesamt</div><div class="sc-val">${questions.length}</div></div>
       </div>
+      ${wrongCount > 0 ? `<button class="btn btn-review" onclick="startWrongQuiz()">🔁 Fehler üben (${wrongCount} Frage${wrongCount === 1 ? "" : "n"})</button>` : ""}
       <div class="action-row">
         <button class="btn" onclick="backToBlocks()">Themen wechseln</button>
         <button class="btn btn-accent" onclick="startQuiz()">Nochmal</button>
@@ -258,9 +312,15 @@ function renderQuestion(app) {
   const isMulti = question.multi === true;
   const selected = Array.isArray(sel) ? sel : (sel === null ? [] : [sel]);
 
+  const wrongSoFar = (answered ? idx + 1 : idx) - score;
   app.innerHTML = `
     <div class="quiz-topbar">
       <button class="back-link" onclick="pauseToMenu()">⏸ Pause · zur Themenauswahl</button>
+      <div class="quiz-pills">
+        ${reviewMode ? '<span class="pill pill-review">🔁 Fehler-Review</span>' : ""}
+        <span class="pill pill-ok">✓ ${score}</span>
+        <span class="pill pill-bad">✗ ${wrongSoFar}</span>
+      </div>
     </div>
     <div class="progress-wrap">
       <div class="progress-row"><span>Frage ${idx + 1} / ${questions.length}</span><span class="q-cat">${question.cat}</span></div>
@@ -361,6 +421,8 @@ function resumeBlock() {
   score = saved.score;
   sel = saved.sel;
   answered = saved.answered;
+  wrongs = saved.wrongs || [];
+  reviewMode = saved.reviewMode || false;
   phase = "quiz";
   render();
 }
@@ -397,6 +459,22 @@ function startQuiz() {
   score = 0;
   sel = null;
   answered = false;
+  wrongs = [];
+  reviewMode = false;
+  phase = "quiz";
+  render();
+}
+
+function startWrongQuiz() {
+  if (wrongs.length === 0) return;
+  clearProgress(activeModule, activeBlock);
+  questions = shuffle(wrongs).map(shuffleOpts);
+  idx = 0;
+  score = 0;
+  sel = null;
+  answered = false;
+  wrongs = [];
+  reviewMode = true;
   phase = "quiz";
   render();
 }
@@ -435,7 +513,11 @@ function submitAnswer() {
   }
 
   answered = true;
-  if (isCorrect()) score++;
+  if (isCorrect()) {
+    score++;
+  } else {
+    wrongs.push(question);
+  }
   saveProgress();
   render();
 }
@@ -447,10 +529,39 @@ function nextQuestion() {
   if (idx >= questions.length) {
     phase = "done";
     clearProgress(activeModule, activeBlock);
+    // Statistik nur für komplette Läufe (keine Kategorie-Filter, kein Fehler-Review)
+    if (!reviewMode && filterCat === "All" && questions.length > 0) {
+      recordStats(activeModule, activeBlock, Math.round(score / questions.length * 100));
+    }
   } else {
     saveProgress();
   }
   render();
+}
+
+// ── Tastatursteuerung: 1–6 / A–F wählen, Enter prüft bzw. geht weiter ──
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("keydown", event => {
+    if (phase !== "quiz") return;
+    const question = questions[idx];
+    if (!question || event.ctrlKey || event.metaKey || event.altKey) return;
+
+    const key = event.key.toLowerCase();
+    const letters = ["a", "b", "c", "d", "e", "f"];
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (answered) nextQuestion();
+      else submitAnswer();
+      return;
+    }
+    if (answered) return;
+
+    let optionIndex = -1;
+    if (/^[1-6]$/.test(key)) optionIndex = Number(key) - 1;
+    else if (letters.includes(key)) optionIndex = letters.indexOf(key);
+    if (optionIndex >= 0 && optionIndex < question.opts.length) pick(optionIndex);
+  });
 }
 
 render();
