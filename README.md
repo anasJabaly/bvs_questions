@@ -1,24 +1,52 @@
 # Klausurtrainer
 
-Eine kleine, frameworkfreie Webapp zum Lernen und Üben mehrerer Studienmodule. Aktuell sind enthalten:
+Frameworkfreie Webapp zum Lernen und Üben mehrerer Studienmodule.
 
-- **Computergrafik** mit ausführlichen Lernblättern, Formelsammlungen und passenden Quizfragen (aktuell Blatt 1)
-- **BVS2** mit Socket Programming, Web Services und Containerization
-- **BWR** mit sechs Vorlesungsblöcken und Fragen aus den Unterlagen des Sommersemesters 2026
-- **DBII** (Datenbanken II) mit acht Themenblöcken und über 100 Fragen aus den Vorlesungsfolien 1–12 des Sommersemesters 2026: Erweitertes ERM, Objektrelationale Erweiterungen, SQL für Data Science, JDBC, Transaktionen, Trigger, Zugriffspfade sowie DB Tuning und NoSQL
+## Computergrafik
 
-Die App unterstützt ausführliche Lernseiten, Einzel- und Mehrfachantworten, Kategorien, gemischte Gesamtquizze und separat gespeicherte Fortschritte je Modul und Themenblock.
+Das Computergrafik-Modul besitzt zwei Bereiche:
 
-### Weitere Features
+- **Blätter**: ausführliche Lernseiten zu Aufgabenblatt 1 und 2 mit Formelsammlungen und Quizfragen.
+- **Vorlesungen**: klausurorientierte, scrollbare Lernskripte mit Erklärungen, Herleitungen, Formeln, Merksätzen und Selbsttests.
 
-- **Ergebnis-Statistiken**: Pro Themenblock werden bestes und letztes Ergebnis gespeichert und als Fortschrittsbalken auf den Modul- und Blockkarten angezeigt.
-- **Fehler-Review**: Nach einem Durchlauf lassen sich per Klick nur die falsch beantworteten Fragen erneut üben.
-- **Live-Zähler**: Während des Quiz zeigen Pills in der Kopfzeile den aktuellen Stand (richtig / falsch).
-- **Tastatursteuerung**: Antworten mit den Tasten `1`–`6` bzw. `A`–`F` auswählen, mit `Enter` prüfen und weiterblättern.
+Enthalten sind die Kapitel:
+
+1. Einführung
+2. Mathe-Repetitorium
+3. Polygonale Netze
+4. Einführung in OpenGL
+5. Transformationen
+6. Projektionen
+7. Rendering Pipeline
+8. Shader
+9. Beleuchtung
+10. Texturen
+11. Fortgeschrittene Texturierung
+12. Gammakorrektur und Tonemapping
+13. Raytracing und Path Tracing
+14. BRDFs
+15. Volume Rendering
+16. Klausurinfo und Lernstrategie
+
+Die hochgeladenen Screenshots der TH-Köln-Lernmodule sind bei Homeomorphie und Transformationen direkt in die Lernskripte eingebunden.
+
+## Weitere Module
+
+- BVS2
+- BWR
+- Datenbanken II
+
+## Features
+
+- scrollbare Lernseiten
+- Einzel- und Mehrfachantworten
+- Kategorien pro Kapitel
+- gespeicherter Quizfortschritt
+- bestes und letztes Ergebnis
+- Fehler-Review
+- Tastatursteuerung über `1`–`6`, `A`–`F` und `Enter`
 
 ## Lokal starten
-
-Da die App nur aus HTML, CSS und JavaScript besteht, reicht ein einfacher lokaler Webserver:
 
 ```bash
 python3 -m http.server 8000
@@ -26,34 +54,14 @@ python3 -m http.server 8000
 
 Danach `http://localhost:8000` öffnen.
 
-## Neues Modul ergänzen
+## Test
 
-1. Eine neue Fragendatei anlegen, zum Beispiel `mathe-questions.js`.
-2. Die Datei in `index.html` vor `modules.js` einbinden.
-3. Das Modul und seine Themenblöcke in `modules.js` registrieren.
-
-Für ein Lernblatt kann ein Block zusätzlich ein HTML-Feld `content` erhalten. Dann öffnet die Blockkarte zuerst die Lernseite; ein Quiz kann weiterhin über das zugehörige `questions`-Array gestartet werden.
-
-Eine Frage hat dieses Format:
-
-```js
-{
-  cat: "Kategorie",
-  q: "Fragetext?",
-  code: null,
-  opts: ["Antwort A", "Antwort B", "Antwort C", "Antwort D"],
-  ans: 1,
-  exp: "Erklärung der richtigen Antwort",
-  source: "Vorlesung 1"
-}
+```bash
+node smoke-test.js
 ```
 
-Für mehrere richtige Antworten wird ein Array verwendet, zum Beispiel `ans: [0, 2]`.
-
-## Test
+oder:
 
 ```bash
 node tests/smoke-test.js
 ```
-
-Der Test prüft Modulauswahl, Quizstart, Feedback sowie Speichern und Fortsetzen.

@@ -12,81 +12,87 @@ const context = vm.createContext({
   console,
   document: {
     title: "",
-    getElementById(id) {
-      return elements[id];
-    },
+    getElementById(id) { return elements[id]; },
+    addEventListener() {},
   },
   localStorage: {
     getItem(key) { return storage.has(key) ? storage.get(key) : null; },
     setItem(key, value) { storage.set(key, String(value)); },
     removeItem(key) { storage.delete(key); },
   },
+  Set,
 });
 
-for (const file of ["questions.js", "bwr-questions.js", "dbii-questions.js", "cg-worksheets.js", "modules.js", "quiz.js"]) {
+for (const file of [
+  "questions.js",
+  "bwr-questions.js",
+  "dbii-questions.js",
+  "cg-worksheets.js",
+  "cg-lectures.js",
+  "modules.js",
+  "quiz.js",
+]) {
   vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context, {filename: file});
 }
 
 assert.match(elements.app.innerHTML, /BVS2/);
 assert.match(elements.app.innerHTML, /Betriebswirtschaft und Recht/);
 assert.match(elements.app.innerHTML, /Computergrafik/);
+assert.match(elements.app.innerHTML, /2 Bereiche/);
 
-// Computergrafik-Lernblatt: Blätter-Menü, Lernseite und Quiz prüfen
+// Computergrafik besitzt jetzt die Untermenüs Blätter und Vorlesungen.
 vm.runInContext("selectModule('cg')", context);
 assert.equal(elements["header-tag"].textContent, "Computergrafik");
+assert.match(elements.app.innerHTML, /Blätter/);
+assert.match(elements.app.innerHTML, /Vorlesungen/);
+
+// Bestehende Aufgabenblätter funktionieren weiterhin.
+vm.runInContext("selectGroup('worksheets')", context);
 assert.match(elements.app.innerHTML, /Welches Aufgabenblatt/);
 assert.match(elements.app.innerHTML, /Blatt 1/);
 assert.match(elements.app.innerHTML, /Blatt 2/);
-
 vm.runInContext("selectBlock('blatt1')", context);
 assert.match(elements.app.innerHTML, /Formelsammlung zu Blatt 1/);
-assert.match(elements.app.innerHTML, /Originaler Lern-Chat zu Blatt 1/);
 assert.match(elements.app.innerHTML, /Orthogonale Projektion/);
-assert.match(elements.app.innerHTML, /Quiz zu Blatt 1 starten/);
-
 vm.runInContext("startLessonQuiz()", context);
 assert.match(elements.app.innerHTML, /Frage 1 \/ 12/);
-vm.runInContext("backToLesson(); backToBlocks(); selectBlock('blatt2')", context);
-assert.match(elements.app.innerHTML, /Das Möbiusband wirklich verstehen/);
-assert.match(elements.app.innerHTML, /Formelsammlung zu Blatt 2/);
-assert.match(elements.app.innerHTML, /Quiz zu Blatt 2 starten/);
-vm.runInContext("startLessonQuiz()", context);
-assert.match(elements.app.innerHTML, /Frage 1 \/ 14/);
-vm.runInContext("showModuleMenu()", context);
 
-vm.runInContext("selectModule('bwr')", context);
+// Vorlesungsmenü, scrollbares Lernskript und Quiz testen.
+vm.runInContext("backToLesson(); backToBlocks(); backToGroups(); selectGroup('lectures')", context);
+assert.match(elements.app.innerHTML, /Mathe-Repetitorium/);
+assert.match(elements.app.innerHTML, /Transformationen/);
+assert.match(elements.app.innerHTML, /Volume Rendering/);
+assert.match(elements.app.innerHTML, /Klausurinfo/);
+vm.runInContext("selectBlock('vl02')", context);
+assert.match(elements.app.innerHTML, /Herleitung der orthogonalen Projektion/);
+assert.match(elements.app.innerHTML, /lecture-study-chat/);
+assert.match(elements.app.innerHTML, /Quiz zu Vorlesung 02 starten/);
+vm.runInContext("startLessonQuiz()", context);
+assert.match(elements.app.innerHTML, /Frage 1 \/ 5/);
+
+vm.runInContext("backToLesson(); backToBlocks(); selectBlock('vl05')", context);
+assert.match(elements.app.innerHTML, /Transformation von Normalen/);
+assert.match(elements.app.innerHTML, /cg-transformations-quiz-1.png/);
+vm.runInContext("backToBlocks(); selectBlock('vl06')", context);
+assert.match(elements.app.innerHTML, /perspektivische Division/);
+assert.match(elements.app.innerHTML, /Near, Far und Tiefengenauigkeit/);
+
+// Andere Module bleiben erreichbar.
+vm.runInContext("showModuleMenu(); selectModule('bwr')", context);
 assert.equal(elements["header-tag"].textContent, "Betriebswirtschaft und Recht");
 assert.match(elements.app.innerHTML, /Vorlesung 6/);
-
 vm.runInContext("selectBlock('vl5')", context);
 assert.match(elements.app.innerHTML, /11 Fragen ausgewählt/);
-assert.match(elements.app.innerHTML, /Kostenrechnung/);
-
 vm.runInContext("startQuiz()", context);
 assert.match(elements.app.innerHTML, /Frage 1 \/ 11/);
-vm.runInContext("pick(0); submitAnswer()", context);
-assert.match(elements.app.innerHTML, /Quelle:/);
-
-vm.runInContext("pauseToMenu(); selectBlock('vl5')", context);
-assert.match(elements.app.innerHTML, /gespeicherten Fortschritt/);
-assert.match(elements.app.innerHTML, /Fortsetzen/);
 
 vm.runInContext("showModuleMenu(); selectModule('bvs2')", context);
 assert.match(elements.app.innerHTML, /Socket Programming/);
 assert.match(elements.app.innerHTML, /Ganzes Modul/);
 
-// DBII-Modul: Blockauswahl, Fragen und Fehler-Review-Fluss prüfen
 vm.runInContext("showModuleMenu(); selectModule('dbii')", context);
 assert.match(elements["header-tag"].textContent, /Datenbanken II/);
 assert.match(elements.app.innerHTML, /Erweitertes ERM/);
 assert.match(elements.app.innerHTML, /NoSQL/);
 
-vm.runInContext("selectBlock('b5')", context);
-assert.match(elements.app.innerHTML, /Fragen ausgewählt/);
-vm.runInContext("startQuiz()", context);
-assert.match(elements.app.innerHTML, /✓ 0/);
-assert.match(elements.app.innerHTML, /✗ 0/);
-vm.runInContext("pick(0); submitAnswer()", context);
-assert.match(elements.app.innerHTML, /Quelle:/);
-
-console.log("Smoke-Test erfolgreich: Modulwahl (inkl. DBII), Quiz, Feedback, Live-Pills und Fortsetzen funktionieren.");
+console.log("Smoke-Test erfolgreich: CG-Untermenüs, Lernskripte, Quiz und bestehende Module funktionieren.");

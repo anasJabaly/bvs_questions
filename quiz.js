@@ -20,6 +20,7 @@ function shuffleOpts(question) {
 }
 
 let activeModule = null;
+let activeGroup = null;
 let activeBlock = null;
 let activePool = [];
 let activeCats = ["All"];
@@ -65,12 +66,46 @@ function recordStats(moduleKey, blockKey, percentage) {
   }
 }
 
+function groupEntries(moduleKey) {
+  const module = MODULES[moduleKey];
+  if (!module?.groups) return [[null, {title: module?.fullTitle || "", blocks: module?.blocks || {}}]];
+  return Object.entries(module.groups);
+}
+
+function allBlockEntries(moduleKey) {
+  return groupEntries(moduleKey).flatMap(([groupKey, group]) =>
+    Object.entries(group.blocks || {}).map(([blockKey, block]) => ({groupKey, blockKey, block}))
+  );
+}
+
+function currentGroup() {
+  const module = currentModule();
+  if (!module?.groups) return null;
+  return activeGroup ? module.groups[activeGroup] : null;
+}
+
+function currentBlocks() {
+  const module = currentModule();
+  if (!module) return {};
+  return module.groups ? (currentGroup()?.blocks || {}) : (module.blocks || {});
+}
+
+function currentBlock() {
+  return activeBlock ? currentBlocks()[activeBlock] : null;
+}
+
+function findGroupForBlock(moduleKey, blockKey) {
+  const module = MODULES[moduleKey];
+  if (!module?.groups) return null;
+  return Object.entries(module.groups).find(([, group]) => Object.hasOwn(group.blocks || {}, blockKey))?.[0] || null;
+}
+
 function moduleStats(moduleKey) {
-  const blockKeys = Object.keys(MODULES[moduleKey].blocks);
-  const entries = blockKeys.map(blockKey => statsFor(moduleKey, blockKey)).filter(Boolean);
+  const refs = allBlockEntries(moduleKey);
+  const entries = refs.map(({blockKey}) => statsFor(moduleKey, blockKey)).filter(Boolean);
   if (entries.length === 0) return null;
   const avgBest = Math.round(entries.reduce((sum, entry) => sum + entry.best, 0) / entries.length);
-  return {practiced: entries.length, total: blockKeys.length, avgBest};
+  return {practiced: entries.length, total: refs.length, avgBest};
 }
 
 function saveKey(moduleKey, blockKey) {
@@ -82,6 +117,7 @@ function saveProgress() {
   try {
     const data = {
       activeModule,
+      activeGroup,
       activeBlock,
       filterCat,
       questions,
@@ -137,14 +173,21 @@ function currentModule() {
 }
 
 function moduleQuestionCount(moduleKey) {
-  return Object.values(MODULES[moduleKey].blocks)
-    .reduce((sum, block) => sum + block.questions.length, 0);
+  return allBlockEntries(moduleKey)
+    .reduce((sum, {block}) => sum + (block.questions?.length || 0), 0);
 }
 
 function poolForBlock(moduleKey, blockKey) {
   const module = MODULES[moduleKey];
   if (blockKey === "all") {
-    return Object.values(module.blocks).flatMap(block => block.questions);
+    const blocks = module.groups && activeGroup
+      ? Object.values(module.groups[activeGroup].blocks || {})
+      : allBlockEntries(moduleKey).map(entry => entry.block);
+    return blocks.flatMap(block => block.questions || []);
+  }
+  if (module.groups) {
+    const groupKey = activeGroup || findGroupForBlock(moduleKey, blockKey);
+    return module.groups[groupKey]?.blocks?.[blockKey]?.questions || [];
   }
   return module.blocks[blockKey]?.questions || [];
 }
@@ -165,8 +208,25 @@ function updateHeader() {
 
   tag.textContent = module.fullTitle;
 
+  if (module.groups) {
+    const group = currentGroup();
+    const block = currentBlock();
+    if (phase === "groupselect") {
+      title.textContent = module.fullTitle;
+      subtitle.textContent = module.groupTitle || "Wähle einen Lernbereich";
+      document.title = `${module.title} — Lernbereiche`;
+      return;
+    }
+    title.textContent = phase === "lesson" && block ? block.title : (group?.title || module.fullTitle);
+    subtitle.textContent = phase === "lesson" && block
+      ? block.sub
+      : (group?.menuTitle || "Wähle ein Kapitel aus");
+    document.title = `${module.title} — ${phase === "lesson" && block ? block.title : (group?.title || "Lernen")}`;
+    return;
+  }
+
   if (module.kind === "worksheets") {
-    const block = activeBlock ? module.blocks[activeBlock] : null;
+    const block = currentBlock();
     title.textContent = phase === "lesson" && block ? block.title : (module.menuLabel || "Lernblätter");
     subtitle.textContent = phase === "lesson" && block
       ? block.sub
@@ -188,16 +248,17 @@ function resumeTag(moduleKey, blockKey) {
 
 function renderModuleSelect(app) {
   const cards = Object.entries(MODULES).map(([key, module]) => {
-    const blockCount = Object.keys(module.blocks).length;
+    const grouped = Boolean(module.groups);
+    const blockCount = allBlockEntries(key).length;
     const questionCount = moduleQuestionCount(key);
     const isWorksheets = module.kind === "worksheets";
-    const blockLabel = isWorksheets
-      ? `${blockCount} ${blockCount === 1 ? "Blatt" : "Blätter"}`
-      : `${blockCount} Themenblöcke`;
-    const questionLabel = isWorksheets ? `${questionCount} Lernfragen` : `${questionCount} Fragen`;
+    const blockLabel = grouped
+      ? `${Object.keys(module.groups).length} Bereiche · ${blockCount} Lernseiten`
+      : (isWorksheets ? `${blockCount} ${blockCount === 1 ? "Blatt" : "Blätter"}` : `${blockCount} Themenblöcke`);
+    const questionLabel = (grouped || isWorksheets) ? `${questionCount} Lernfragen` : `${questionCount} Fragen`;
     const stats = moduleStats(key);
     const statsLine = stats
-      ? `<span class="module-stats"><span class="module-stats-bar"><span class="module-stats-fill" style="width:${stats.avgBest}%"></span></span>${stats.practiced}/${stats.total} ${isWorksheets ? "Blätter" : "Blöcke"} geübt · Ø Best ${stats.avgBest}%</span>`
+      ? `<span class="module-stats"><span class="module-stats-bar"><span class="module-stats-fill" style="width:${stats.avgBest}%"></span></span>${stats.practiced}/${stats.total} Kapitel geübt · Ø Best ${stats.avgBest}%</span>`
       : "";
     return `
       <button type="button" class="module-card" onclick="selectModule('${key}')">
@@ -220,11 +281,36 @@ function renderModuleSelect(app) {
     <div class="module-grid">${cards}</div>`;
 }
 
+function renderGroupSelect(app) {
+  const module = currentModule();
+  const cards = Object.entries(module.groups).map(([key, group]) => {
+    const blocks = Object.values(group.blocks || {});
+    const questionCount = blocks.reduce((sum, block) => sum + (block.questions?.length || 0), 0);
+    return `
+      <button type="button" class="module-card cg-group-card" onclick="selectGroup('${key}')">
+        <span class="module-icon" aria-hidden="true">${group.icon || "▤"}</span>
+        <span class="module-copy">
+          <span class="module-title">${group.title}</span>
+          <span class="module-sub">${group.sub}</span>
+          <span class="module-meta">${blocks.length} ${blocks.length === 1 ? "Eintrag" : "Einträge"} · ${questionCount} Fragen</span>
+        </span>
+        <span class="module-arrow" aria-hidden="true">→</span>
+      </button>`;
+  }).join("");
+
+  app.innerHTML = `
+    <button class="back-link module-back" onclick="showModuleMenu()">← Alle Module</button>
+    <div class="section-intro block-intro"><span class="eyebrow">Computergrafik</span><h2>${module.groupTitle || "Wähle einen Lernbereich"}</h2></div>
+    <div class="module-grid cg-group-grid">${cards}</div>`;
+}
+
 function renderBlockSelect(app) {
   const module = currentModule();
-  const isWorksheets = module.kind === "worksheets";
-  const cards = Object.entries(module.blocks).map(([key, block]) => {
-    const count = block.questions.length;
+  const group = currentGroup();
+  const blocks = currentBlocks();
+  const isLearning = module.kind === "worksheets" || Boolean(module.groups);
+  const cards = Object.entries(blocks).map(([key, block]) => {
+    const count = block.questions?.length || 0;
     const hasContent = Boolean(block.content);
     const disabled = count === 0 && !hasContent;
     const stats = statsFor(activeModule, key);
@@ -238,7 +324,7 @@ function renderBlockSelect(app) {
       <button type="button" class="block-card ${disabled ? "disabled" : ""}"
         ${disabled ? "disabled" : `onclick="selectBlock('${key}')"`}>
         ${disabled ? '<span class="bc-badge">in Arbeit</span>' : ""}
-        ${hasContent ? '<span class="bc-badge bc-ready">Lernblatt</span>' : ""}
+        ${hasContent ? '<span class="bc-badge bc-ready">Lernskript</span>' : ""}
         <div class="bc-title">${block.title}</div>
         <div class="bc-sub">${block.sub}</div>
         <span class="bc-count">${countText}</span>
@@ -246,34 +332,42 @@ function renderBlockSelect(app) {
         ${statsLine}
       </button>`;
   }).join("");
-  const total = moduleQuestionCount(activeModule);
-  const allCard = module.showAllQuiz === false ? "" : `
+  const total = Object.values(blocks).reduce((sum, block) => sum + (block.questions?.length || 0), 0);
+  const showAll = group ? group.showAllQuiz !== false : module.showAllQuiz !== false;
+  const allTitle = module.groups ? "Ganzer Bereich" : "Ganzes Modul";
+  const allCard = !showAll ? "" : `
       <button type="button" class="block-card full-width" onclick="selectBlock('all')">
-        <div class="bc-title">🎓 Ganzes Modul</div>
+        <div class="bc-title">🎓 ${allTitle}</div>
         <div class="bc-sub">Alle verfügbaren Themen gemischt</div>
         <span class="bc-count">${total} Fragen</span>
         ${resumeTag(activeModule, "all")}
       </button>`;
 
+  const backAction = module.groups ? "backToGroups()" : "showModuleMenu()";
+  const backText = module.groups ? "Zurück zu Blätter / Vorlesungen" : "Alle Module";
+  const label = group?.menuLabel || module.menuLabel;
+  const menuTitle = group?.menuTitle || module.menuTitle;
+
   app.innerHTML = `
-    <button class="back-link module-back" onclick="showModuleMenu()">← Alle Module</button>
-    ${isWorksheets ? `<div class="section-intro block-intro"><span class="eyebrow">${module.menuLabel || "Lernblätter"}</span><h2>${module.menuTitle || "Wähle ein Blatt aus"}</h2></div>` : ""}
-    <div class="block-grid ${isWorksheets ? "worksheet-grid" : ""}">
+    <button class="back-link module-back" onclick="${backAction}">← ${backText}</button>
+    ${isLearning ? `<div class="section-intro block-intro"><span class="eyebrow">${label || "Lerninhalte"}</span><h2>${menuTitle || "Wähle ein Kapitel aus"}</h2></div>` : ""}
+    <div class="block-grid ${isLearning ? "worksheet-grid" : ""} ${activeGroup === "lectures" ? "lecture-block-grid" : ""}">
       ${cards}
       ${allCard}
     </div>`;
 }
 
 function renderLesson(app) {
-  const block = currentModule()?.blocks[activeBlock];
+  const block = currentBlock();
   if (!block || !block.content) {
     phase = "blockselect";
     render();
     return;
   }
 
+  const backLabel = currentGroup()?.title || (currentModule()?.menuLabel || "Themen");
   app.innerHTML = `
-    <button class="back-link lesson-back" onclick="backToBlocks()">← Zurück zu den Blättern</button>
+    <button class="back-link lesson-back" onclick="backToBlocks()">← Zurück zu ${backLabel}</button>
     ${block.content}`;
 }
 
@@ -285,10 +379,10 @@ function renderResume(app) {
     return;
   }
   const module = currentModule();
-  const title = activeBlock === "all" ? "Ganzes Modul" : module.blocks[activeBlock].title;
-  const lessonResume = currentModule()?.kind === "worksheets" && currentModule()?.blocks[activeBlock]?.content;
+  const title = activeBlock === "all" ? "Ganzer Bereich" : currentBlock()?.title;
+  const lessonResume = Boolean(currentBlock()?.content);
   app.innerHTML = `
-    <button class="back-link" onclick="${lessonResume ? "backToLesson()" : "backToBlocks()"}">← ${lessonResume ? "Zurück zum Lernblatt" : "Zurück zur Themenauswahl"}</button>
+    <button class="back-link" onclick="${lessonResume ? "backToLesson()" : "backToBlocks()"}">← ${lessonResume ? "Zurück zum Lernskript" : "Zurück zur Themenauswahl"}</button>
     <div class="resume-card">
       <div class="resume-title">${title}</div>
       <div class="resume-sub">Du hast einen gespeicherten Fortschritt:<br>
@@ -402,6 +496,7 @@ function render() {
   updateHeader();
 
   if (phase === "moduleselect") return renderModuleSelect(app);
+  if (phase === "groupselect") return renderGroupSelect(app);
   if (phase === "blockselect") return renderBlockSelect(app);
   if (phase === "lesson") return renderLesson(app);
   if (phase === "resume") return renderResume(app);
@@ -412,6 +507,15 @@ function render() {
 
 function selectModule(moduleKey) {
   activeModule = moduleKey;
+  activeGroup = null;
+  activeBlock = null;
+  filterCat = "All";
+  phase = MODULES[moduleKey].groups ? "groupselect" : "blockselect";
+  render();
+}
+
+function selectGroup(groupKey) {
+  activeGroup = groupKey;
   activeBlock = null;
   filterCat = "All";
   phase = "blockselect";
@@ -420,9 +524,18 @@ function selectModule(moduleKey) {
 
 function showModuleMenu() {
   activeModule = null;
+  activeGroup = null;
   activeBlock = null;
   filterCat = "All";
   phase = "moduleselect";
+  render();
+}
+
+function backToGroups() {
+  activeGroup = null;
+  activeBlock = null;
+  filterCat = "All";
+  phase = "groupselect";
   render();
 }
 
@@ -438,10 +551,10 @@ function selectBlock(blockKey) {
   activePool = poolForBlock(activeModule, blockKey);
   activeCats = blockKey === "all"
     ? ["All"]
-    : currentModule().blocks[blockKey].cats;
+    : (currentBlocks()[blockKey].cats || ["All"]);
   filterCat = "All";
 
-  const block = blockKey === "all" ? null : currentModule().blocks[blockKey];
+  const block = blockKey === "all" ? null : currentBlocks()[blockKey];
   if (block?.content) {
     phase = "lesson";
   } else {
@@ -451,7 +564,7 @@ function selectBlock(blockKey) {
 }
 
 function startLessonQuiz() {
-  const block = currentModule()?.blocks[activeBlock];
+  const block = currentBlock();
   if (!block || block.questions.length === 0) return;
   activePool = block.questions;
   activeCats = block.cats || ["All"];
@@ -466,7 +579,7 @@ function startLessonQuiz() {
 }
 
 function backToLesson() {
-  const block = currentModule()?.blocks[activeBlock];
+  const block = currentBlock();
   phase = block?.content ? "lesson" : "blockselect";
   render();
 }
@@ -480,9 +593,10 @@ function resumeBlock() {
   }
 
   activeModule = saved.activeModule;
+  activeGroup = saved.activeGroup || findGroupForBlock(activeModule, saved.activeBlock);
   activeBlock = saved.activeBlock;
   activePool = poolForBlock(activeModule, activeBlock);
-  activeCats = activeBlock === "all" ? ["All"] : currentModule().blocks[activeBlock].cats;
+  activeCats = activeBlock === "all" ? ["All"] : (currentBlocks()[activeBlock].cats || ["All"]);
   filterCat = saved.filterCat || "All";
   questions = saved.questions;
   idx = saved.idx;

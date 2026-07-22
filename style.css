@@ -517,3 +517,52 @@
   .moebius-build .flow-arrow,
   .orientation-loop .flow-arrow { transform:rotate(90deg); min-height:20px; }
 }
+
+/* ── Computergrafik: Untermenüs Blätter / Vorlesungen ── */
+.cg-group-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.cg-group-card { min-height:145px; }
+.lecture-block-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.lecture-block-grid .block-card { min-height:145px; }
+.lecture-block-grid .bc-sub { padding-right:72px; line-height:1.55; }
+
+/* ── Scrollbare Vorlesungsskripte ── */
+.lecture-hero { background:linear-gradient(135deg,rgba(124,106,247,.18),rgba(41,220,180,.07)); }
+.lecture-study-chat { max-height:760px; }
+.lecture-chat-card { width:100%; max-width:none; margin-left:0; margin-right:0; }
+.lecture-chat-card h3 { margin-top:.15rem; }
+.lecture-bullets,
+.lecture-steps,
+.lecture-checklist {
+  margin:.75rem 0; padding-left:1.35rem; color:var(--muted); font-size:13px; line-height:1.75;
+}
+.lecture-bullets li,
+.lecture-steps li,
+.lecture-checklist li { margin:.28rem 0; }
+.lecture-bullets li::marker { color:var(--accent2); }
+.lecture-steps li::marker { color:var(--accent2); font-weight:700; }
+.lecture-check-card { border-color:rgba(41,220,180,.35); background:rgba(41,220,180,.055); }
+.lecture-checklist { list-style:none; padding-left:0; display:grid; gap:7px; }
+.lecture-checklist li {
+  position:relative; padding:9px 10px 9px 34px; border:1px solid var(--border);
+  border-radius:8px; background:var(--bg);
+}
+.lecture-checklist li::before {
+  content:"✓"; position:absolute; left:11px; top:9px; color:var(--success); font-weight:700;
+}
+.lecture-image-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:1rem; }
+.lecture-image-grid:has(.lecture-figure:only-child) { grid-template-columns:1fr; }
+.lecture-figure {
+  overflow:hidden; margin:0; border:1px solid var(--border); border-radius:10px; background:var(--bg);
+}
+.lecture-figure a { display:block; }
+.lecture-figure img { display:block; width:100%; max-height:360px; object-fit:contain; background:#fff; }
+.lecture-figure figcaption { padding:8px 10px; color:var(--muted); font-size:10px; line-height:1.45; }
+.lecture-page .chat-formula-list span { white-space:normal; overflow-wrap:anywhere; }
+
+@media (max-width:760px) {
+  .cg-group-grid,
+  .lecture-block-grid,
+  .lecture-image-grid { grid-template-columns:1fr; }
+  .lecture-block-grid .bc-sub { padding-right:0; }
+  .lecture-study-chat { max-height:670px; }
+}
