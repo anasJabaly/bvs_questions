@@ -19,6 +19,14 @@ const MODULES = {
         cats: ["All", "Framework", "OpenGL", "Animation", "Vektoren", "Dreiecksnormalen", "Winkel", "Dreieck", "Projektion"],
         content: CG_SHEET_1_CONTENT,
       },
+      blatt2: {
+        title: "Blatt 2",
+        sub: "Orientierung, Linien, Würfel & Möbiusband",
+        questions: CG_SHEET_2_QUESTIONS,
+        cats: ["All", "Orientierung", "Culling", "Linienindizes", "Offener Würfel", "Möbiusband"],
+        content: CG_SHEET_2_CONTENT,
+      },
+ (Computergrafik Lernmodul mit Blatt 2 hinzugefügt)
     },
   },
   bvs2: {

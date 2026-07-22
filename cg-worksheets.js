@@ -547,3 +547,616 @@ double alpha = Math.toDegrees(Math.acos(cosAlpha));</code></pre>
       <button class="start-btn lesson-quiz-button" onclick="startLessonQuiz()">Quiz zu Blatt 1 starten · 12 Fragen →</button>
     </section>
   </article>`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aufgabenblatt 2: Orientierung, Linien, offener Würfel und Möbiusband
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CG_SHEET_2_QUESTIONS = [
+  {
+    cat: "Orientierung",
+    q: "Wodurch wird bei einem Dreieck die Richtung seiner Vorderseite bestimmt?",
+    code: "int[] indices = {0, 1, 2};",
+    opts: [
+      "Nur durch die Farbe des Dreiecks",
+      "Durch die Reihenfolge der Eckpunkte beziehungsweise die Winding Order",
+      "Nur durch die Position der Kamera",
+      "Durch die Anzahl der Indizes"
+    ],
+    ans: 1,
+    exp: "Die Reihenfolge der Vertices legt die Orientierung fest. In OpenGL gilt standardmäßig eine gegen den Uhrzeigersinn durchlaufene Fläche als Vorderseite.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.1"
+  },
+  {
+    cat: "Orientierung",
+    q: "Was passiert, wenn bei einem Dreieck zwei Indizes vertauscht werden?",
+    code: "{0, 1, 2}  →  {0, 2, 1}",
+    opts: [
+      "Das Dreieck wird größer.",
+      "Die Orientierung und die Richtung der Normalen kehren sich um.",
+      "Das Dreieck wird automatisch gelöscht.",
+      "Nur die Linienfarbe ändert sich."
+    ],
+    ans: 1,
+    exp: "Das Vertauschen zweier Eckpunkte kehrt den Durchlaufsinn um. Da das Kreuzprodukt seine Richtung wechselt, zeigt auch die Normale in die Gegenrichtung.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.1"
+  },
+  {
+    cat: "Culling",
+    q: "Was bewirkt glEnable(GL_CULL_FACE)?",
+    code: null,
+    opts: [
+      "Es aktiviert das Verwerfen bestimmter Vorder- oder Rückseiten.",
+      "Es zeichnet automatisch alle Kanten.",
+      "Es deaktiviert den Tiefentest.",
+      "Es normalisiert alle Normalen."
+    ],
+    ans: 0,
+    exp: "Face Culling sorgt dafür, dass die mit glCullFace ausgewählte Seite nicht gerendert wird.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.1b"
+  },
+  {
+    cat: "Culling",
+    q: "Wie werden Vorderseiten grün und Rückseiten rot dargestellt?",
+    code: null,
+    opts: [
+      "Einmal zeichnen und GL_FRONT_AND_BACK verwerfen",
+      "Zweimal zeichnen: zuerst Rückseiten verwerfen und grün zeichnen, danach Vorderseiten verwerfen und rot zeichnen",
+      "Nur glClearColor auf Grün und danach Rot setzen",
+      "Das Mesh muss dafür dupliziert und verschoben werden"
+    ],
+    ans: 1,
+    exp: "Beim ersten Durchlauf wird GL_BACK gecullt, sodass nur Vorderseiten grün erscheinen. Beim zweiten wird GL_FRONT gecullt, sodass nur Rückseiten rot erscheinen.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.1b"
+  },
+  {
+    cat: "Linienindizes",
+    q: "Welche Linienindizes entstehen aus einem Dreieck mit den Indizes a, b, c?",
+    code: null,
+    opts: [
+      "a,b, b,c, c,a",
+      "a,b,c",
+      "a,a, b,b, c,c",
+      "a,c, c,b"
+    ],
+    ans: 0,
+    exp: "GL_LINES interpretiert immer zwei aufeinanderfolgende Indizes als eine Linie. Deshalb werden die drei Kanten als (a,b), (b,c) und (c,a) gespeichert.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.2"
+  },
+  {
+    cat: "Linienindizes",
+    q: "Wie viele Linienindizes werden für ein Dreieck benötigt?",
+    code: null,
+    opts: ["2", "3", "6", "9"],
+    ans: 2,
+    exp: "Ein Dreieck besitzt drei Kanten und jede Linie benötigt zwei Indizes. Damit entstehen 3 · 2 = 6 Linienindizes.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.2"
+  },
+  {
+    cat: "Linienindizes",
+    q: "Warum darf eine gemeinsame Kante bei der einfachen Hilfsfunktion doppelt vorkommen?",
+    code: null,
+    opts: [
+      "Weil GL_LINES sonst nicht funktioniert",
+      "Weil das Entfernen doppelter Kanten zusätzliche Nachbarschafts- beziehungsweise Topologieanalyse benötigen würde",
+      "Weil jede Kante immer zweimal gerendert werden muss",
+      "Damit die Normale berechnet werden kann"
+    ],
+    ans: 1,
+    exp: "Die Aufgabenstellung erlaubt doppelte Kanten bewusst. Eine eindeutige Kantenmenge zu bilden wäre aufwendiger, weil ungeordnete Vertexpaare verglichen werden müssten.",
+    source: "Aufgabenblatt 2 · Aufgabe 1.2a"
+  },
+  {
+    cat: "Offener Würfel",
+    q: "Wie viele eindeutige Eckpunkte benötigt ein Würfel, wenn die Eckpunkte zwischen den Flächen geteilt werden?",
+    code: null,
+    opts: ["6", "8", "12", "24"],
+    ans: 1,
+    exp: "Ein Würfel besitzt acht geometrisch unterschiedliche Ecken. Die Dreiecke verweisen über Indizes mehrfach auf diese acht Vertices.",
+    source: "Aufgabenblatt 2 · Aufgabe 2"
+  },
+  {
+    cat: "Offener Würfel",
+    q: "Warum ist ein Würfel mit zwei fehlenden Seiten ein offenes Mesh?",
+    code: null,
+    opts: [
+      "Weil er weniger als acht Vertices besitzt",
+      "Weil Randkanten existieren, die nur zu einer Facette gehören",
+      "Weil alle Normalen nach innen zeigen",
+      "Weil GL_LINES verwendet wird"
+    ],
+    ans: 1,
+    exp: "An den Öffnungen liegen Kanten, die nur Teil einer Fläche sind. Diese Kanten bilden den Rand des offenen Meshes.",
+    source: "Aufgabenblatt 2 · Aufgabe 2"
+  },
+  {
+    cat: "Möbiusband",
+    q: "Wie entsteht anschaulich ein Möbiusband?",
+    code: null,
+    opts: [
+      "Ein Streifen wird ohne Verdrehung zu einem Ring verklebt.",
+      "Ein Streifen wird um 180 Grad verdreht und anschließend an den Enden verklebt.",
+      "Zwei Würfel werden ineinander geschoben.",
+      "Ein Kreis wird in zwei Hälften geteilt."
+    ],
+    ans: 1,
+    exp: "Die halbe Drehung vor dem Verkleben ist die entscheidende Eigenschaft des Möbiusbandes.",
+    source: "Aufgabenblatt 2 · Aufgabe 3"
+  },
+  {
+    cat: "Möbiusband",
+    q: "Warum kommt in der Parametrisierung der Winkel u/2 vor?",
+    code: null,
+    opts: [
+      "Damit das Band doppelt so schnell um den Ursprung läuft",
+      "Damit sich der Querschnitt während eines vollständigen Umlaufs nur um 180 Grad dreht",
+      "Damit alle Koordinaten positiv sind",
+      "Damit die Breite immer null wird"
+    ],
+    ans: 1,
+    exp: "Wenn u von 0 bis 2π läuft, läuft u/2 nur von 0 bis π. Das entspricht genau einer halben Drehung des Streifens.",
+    source: "Aufgabenblatt 2 · Aufgabe 3"
+  },
+  {
+    cat: "Möbiusband",
+    q: "Welche besondere topologische Eigenschaft besitzt ein Möbiusband?",
+    code: null,
+    opts: [
+      "Es besitzt zwei getrennte Vorderseiten.",
+      "Es ist nicht orientierbar und besitzt nur eine zusammenhängende Seite.",
+      "Es ist immer ein geschlossenes Volumen.",
+      "Es besitzt keinen Rand."
+    ],
+    ans: 1,
+    exp: "Eine Normale kann nicht global konsistent gewählt werden. Nach einem Umlauf kommt sie mit umgekehrter Richtung zurück. Außerdem besitzt das Band nur eine zusammenhängende Seite.",
+    source: "Aufgabenblatt 2 · Aufgabe 3"
+  },
+  {
+    cat: "Möbiusband",
+    q: "Was muss beim Schließen des diskretisierten Möbiusbandes an der Naht beachtet werden?",
+    code: null,
+    opts: [
+      "Die Breitenindizes werden in derselben Reihenfolge verbunden.",
+      "Die Reihenfolge der Breitenindizes muss an der Naht umgekehrt werden.",
+      "Alle Vertices an der Naht werden gelöscht.",
+      "Die z-Koordinate wird auf null gesetzt."
+    ],
+    ans: 1,
+    exp: "Durch die halbe Verdrehung entspricht die eine Seite des letzten Querschnitts der gegenüberliegenden Seite des ersten Querschnitts. Deshalb muss j mit widthSteps − j verbunden werden.",
+    source: "Aufgabenblatt 2 · Aufgabe 3"
+  },
+  {
+    cat: "Möbiusband",
+    q: "Was geschieht mit einer kontinuierlich mitgeführten Normalen nach einem vollständigen Umlauf über das Möbiusband?",
+    code: null,
+    opts: [
+      "Sie ist unverändert.",
+      "Sie ist doppelt so lang.",
+      "Sie zeigt in die entgegengesetzte Richtung.",
+      "Sie wird automatisch zum Nullvektor."
+    ],
+    ans: 2,
+    exp: "Die Normale kehrt nach einem Umlauf als −n zurück. Genau deshalb ist keine global konsistente Vorder- und Rückseite definierbar.",
+    source: "Aufgabenblatt 2 · Aufgabe 3"
+  }
+];
+
+const CG_SHEET_2_CHAT = `
+    <section class="lesson-section chat-lesson-section" id="cg2-chat">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">💬</span>
+        <div><h3>Lern-Chat zu Blatt 2</h3><p>Die ausführliche Erklärung zu Orientierung, Linien, offenem Würfel und besonders zum Möbiusband.</p></div>
+      </div>
+
+      <div class="study-chat" aria-label="Scrollbarer Lern-Chat zu Aufgabenblatt 2">
+        <div class="chat-message chat-assistant">
+          <div class="chat-role">ChatGPT</div>
+          <h3>Blatt 2 – Verständnis und Kontrolle</h3>
+          <p>Auf Blatt 2 geht es nicht nur darum, Geometrien zu programmieren. Der eigentliche Lernstoff sind die <strong>Orientierung von Dreiecken</strong>, das <strong>Indexieren von Flächen und Linien</strong>, offene polygonale Netze und die besondere Topologie des <strong>Möbiusbandes</strong>.</p>
+
+          <h4>Aufgabe 1.1: Orientierung von Dreiecken</h4>
+          <p>Ein Dreieck besteht nicht nur aus drei Punkten. Auch die Reihenfolge dieser Punkte ist wichtig. Die Indizes <code>{0,1,2}</code> und <code>{0,2,1}</code> benutzen dieselben Vertices, besitzen aber die entgegengesetzte Orientierung.</p>
+          <div class="chat-formula">n = (v<sub>1</sub> − v<sub>0</sub>) × (v<sub>2</sub> − v<sub>0</sub>)</div>
+          <p>Vertauscht man zwei Vertices, wechselt das Kreuzprodukt sein Vorzeichen. Die Normale zeigt also genau andersherum. OpenGL verwendet standardmäßig <strong>Counter Clockwise</strong> als Vorderseite.</p>
+          <pre class="chat-code"><code>int[] indices = {
+    0, 1, 2,   // gegen Uhrzeigersinn: Vorderseite
+    1, 2, 3    // umgekehrte Orientierung: Rückseite
+};</code></pre>
+          <p>Bei zwei benachbarten Dreiecken reichen vier eindeutige Vertices aus, weil beide Dreiecke eine Kante teilen.</p>
+
+          <h4>Vorderseite grün, Rückseite rot</h4>
+          <p>Culling färbt keine Seite. Es <strong>verwirft</strong> eine ausgewählte Seite. Deshalb wird jedes Mesh zweimal gezeichnet:</p>
+          <pre class="chat-code"><code>glEnable(GL_CULL_FACE);
+
+// Nur Vorderseiten bleiben übrig
+ glCullFace(GL_BACK);
+ shader.setUniform("uColor", Color.green());
+ mesh.draw();
+
+// Nur Rückseiten bleiben übrig
+ glCullFace(GL_FRONT);
+ shader.setUniform("uColor", Color.red());
+ mesh.draw();</code></pre>
+          <div class="chat-note"><strong>Merksatz:</strong> <code>glCullFace(GL_BACK)</code> verwirft Rückseiten. Dadurch sieht man die Vorderseiten. <code>glCullFace(GL_FRONT)</code> verwirft Vorderseiten. Dadurch sieht man die Rückseiten.</div>
+
+          <h4>Aufgabe 1.2: Linienindizes</h4>
+          <p>Bei <code>GL_TRIANGLES</code> bilden jeweils drei Indizes ein Dreieck. Bei <code>GL_LINES</code> bilden jeweils zwei Indizes eine Linie.</p>
+          <div class="chat-formula">Dreieck (a,b,c) → Linien (a,b), (b,c), (c,a)</div>
+          <pre class="chat-code"><code>private int[] createLineIndices(int[] triangleIndices) {
+    int triangleCount = triangleIndices.length / 3;
+    int[] lineIndices = new int[triangleCount * 6];
+
+    int out = 0;
+    for (int i = 0; i &lt; triangleIndices.length; i += 3) {
+        int a = triangleIndices[i];
+        int b = triangleIndices[i + 1];
+        int c = triangleIndices[i + 2];
+
+        lineIndices[out++] = a; lineIndices[out++] = b;
+        lineIndices[out++] = b; lineIndices[out++] = c;
+        lineIndices[out++] = c; lineIndices[out++] = a;
+    }
+    return lineIndices;
+}</code></pre>
+          <p>Gemeinsame Kanten dürfen dabei doppelt vorkommen. Das ist nicht speichereffizient, aber für diese Aufgabe bewusst erlaubt.</p>
+
+          <h4>Aufgabe 2: Offener Würfel</h4>
+          <p>Ein Würfel besitzt acht eindeutige Eckpunkte. Jede geschlossene quadratische Seite wird durch zwei Dreiecke dargestellt. Werden zwei Seiten weggelassen, entstehen an den Öffnungen Randkanten. Das Mesh ist deshalb offen.</p>
+          <div class="chat-formula">6 Würfelseiten − 2 Öffnungen = 4 Flächen<br>4 Flächen · 2 Dreiecke = 8 Dreiecke</div>
+          <p>Wichtig ist, alle sichtbaren Flächen von außen in derselben Umlaufrichtung zu definieren. Sonst zeigen einzelne Normalen nach innen und die Culling-Farben wirken falsch.</p>
+
+          <h4>Aufgabe 3: Möbiusband – langsam und anschaulich</h4>
+          <p>Stell dir einen Papierstreifen vor. Bei einem normalen Ring klebst du die Enden direkt zusammen. Bei einem Möbiusband drehst du vorher ein Ende um <strong>180 Grad</strong> und klebst erst dann.</p>
+          <div class="moebius-mini-steps">
+            <span>1. gerader Streifen</span><b>→</b><span>2. halbe Drehung</span><b>→</b><span>3. Enden verbinden</span>
+          </div>
+          <p>Dadurch werden die scheinbare Ober- und Unterseite miteinander verbunden. Ein Stift kann ohne Absetzen die gesamte Fläche bemalen und gelangt wieder zum Startpunkt, aber zunächst auf der vermeintlich anderen Seite.</p>
+          <div class="chat-success"><strong>Das Wichtigste:</strong> Ein Möbiusband besitzt nur eine zusammenhängende Seite und nur eine zusammenhängende Randkurve.</div>
+
+          <h5>Die zwei Parameter</h5>
+          <p><strong>u</strong> läuft einmal um den großen Kreis herum. <strong>v</strong> läuft quer über die Breite des Bandes.</p>
+          <div class="chat-formula chat-formula-main">
+            x(u,v) = (R + v/2 · cos(u/2)) · cos(u)<br>
+            y(u,v) = (R + v/2 · cos(u/2)) · sin(u)<br>
+            z(u,v) = v/2 · sin(u/2)
+          </div>
+          <p>Dabei ist <code>0 ≤ u &lt; 2π</code>. Für die Breite kann beispielsweise <code>−w ≤ v ≤ w</code> benutzt werden.</p>
+
+          <h5>Warum steht dort u/2?</h5>
+          <p>Während <code>u</code> von 0 bis 2π läuft, läuft <code>u/2</code> nur von 0 bis π. Ein Winkel von π entspricht 180 Grad. Genau dadurch erhält der Streifen während eines Umlaufs eine halbe Drehung.</p>
+          <div class="chat-formula">u: 0 → 2π &nbsp;&nbsp; ⇒ &nbsp;&nbsp; u/2: 0 → π = 180°</div>
+
+          <h5>Warum ist das Möbiusband nicht orientierbar?</h5>
+          <p>Wähle an einem Punkt eine Normale und transportiere sie kontinuierlich entlang des Bandes. Nach einem vollständigen Umlauf befindest du dich wieder am gleichen geometrischen Ort, aber die Normale zeigt in die entgegengesetzte Richtung.</p>
+          <div class="chat-formula chat-formula-accent">n nach einem Umlauf → −n</div>
+          <p>Deshalb kann man nicht überall widerspruchsfrei festlegen, was Vorderseite und was Rückseite ist. Lokal besitzt jedes Dreieck eine Vorderseite. Global lässt sich diese Wahl aber nicht für das gesamte Band konsistent fortsetzen.</p>
+
+          <h5>Die Naht beim Erzeugen des Meshes</h5>
+          <p>Beim letzten Segment muss das Band wieder mit dem ersten Segment verbunden werden. Wegen der halben Drehung wird die Breitenrichtung dabei umgekehrt.</p>
+          <div class="chat-formula">letztes Segment, Breitenindex j → erstes Segment, Breitenindex (widthSteps − j)</div>
+          <p>Ohne diese Umkehrung würdest du einen gewöhnlichen Ring oder eine falsch verdrehte Naht erzeugen.</p>
+          <pre class="chat-code"><code>boolean seam = (i == uSteps - 1);
+int nextI = (i + 1) % uSteps;
+
+int nextJ0 = seam ? widthSteps - j     : j;
+int nextJ1 = seam ? widthSteps - j - 1 : j + 1;</code></pre>
+
+          <h4>Was du aus Blatt 2 mitnehmen musst</h4>
+          <div class="chat-formula-list">
+            <div><b>Orientierung</b><span>Reihenfolge der Vertices bestimmt Vorderseite und Normale</span></div>
+            <div><b>Culling</b><span>ausgewählte Seite wird verworfen, nicht gefärbt</span></div>
+            <div><b>Linienindizes</b><span>(a,b,c) → (a,b), (b,c), (c,a)</span></div>
+            <div><b>Offenes Mesh</b><span>besitzt Randkanten, die nur zu einer Facette gehören</span></div>
+            <div><b>Möbiusband</b><span>halbe Drehung, eine Seite, eine Randkurve, nicht orientierbar</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="chat-scroll-hint">↕ Im Lern-Chat kannst du unabhängig von der restlichen Seite scrollen.</p>
+    </section>`;
+
+const CG_SHEET_2_CONTENT = `
+  <article class="lesson-page">
+    <section class="lesson-hero">
+      <div>
+        <span class="eyebrow">Computergrafik · Aufgabenblatt 2</span>
+        <h2>Orientierung, Linien, offener Würfel &amp; Möbiusband</h2>
+        <p>Von der Winding Order über Face Culling bis zur nicht orientierbaren Fläche.</p>
+      </div>
+      <span class="lesson-badge">Blatt 2</span>
+    </section>
+
+    <nav class="lesson-toc" aria-label="Inhaltsverzeichnis Blatt 2">
+      <a href="#cg2-chat">Lern-Chat</a>
+      <a href="#cg2-orientierung">Orientierung</a>
+      <a href="#cg2-linien">Linien</a>
+      <a href="#cg2-cube">Würfel</a>
+      <a href="#cg2-moebius">Möbiusband</a>
+      <a href="#cg2-formeln">Formeln</a>
+      <a href="#cg2-test">Fragen</a>
+    </nav>
+
+    ${CG_SHEET_2_CHAT}
+
+    <section class="lesson-section" id="cg2-orientierung">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">01</span>
+        <div><h3>Aufgabe 1.1: Orientierung von Dreiecken</h3><p>Warum dieselben drei Punkte zwei verschiedene Seitenrichtungen besitzen können.</p></div>
+      </div>
+
+      <div class="lesson-grid lesson-grid-2">
+        <div class="lesson-card">
+          <h4>Winding Order</h4>
+          <p>Die Reihenfolge der Indizes bestimmt den Umlaufsinn. OpenGL betrachtet standardmäßig gegen den Uhrzeigersinn definierte Dreiecke als Vorderseiten.</p>
+          <div class="formula">CCW → Vorderseite<br>CW → Rückseite</div>
+        </div>
+        <div class="lesson-card">
+          <h4>Normalenrichtung</h4>
+          <p>Die Reihenfolge wirkt direkt auf das Kreuzprodukt.</p>
+          <div class="formula">n = (v₁ − v₀) × (v₂ − v₀)</div>
+          <div class="formula">(v₂ − v₀) × (v₁ − v₀) = −n</div>
+        </div>
+      </div>
+
+      <h4 class="lesson-subheading">Zwei benachbarte Dreiecke mit nur vier Vertices</h4>
+      <pre class="lesson-code"><code>float[] positions = {
+    -0.5f, -0.5f, 0.0f,  // v0
+     0.5f, -0.5f, 0.0f,  // v1
+    -0.5f,  0.5f, 0.0f,  // v2
+     0.5f,  0.5f, 0.0f   // v3
+};
+
+int[] indices = {
+    0, 1, 2,   // Normale zeigt zum Betrachter
+    1, 2, 3    // gleiche Punktebene, umgekehrte Orientierung
+};</code></pre>
+      <div class="lesson-warning"><strong>Warum minimal?</strong> Zwei getrennte Dreiecke hätten sechs gespeicherte Vertices. Da die Dreiecke eine Kante teilen, genügen vier eindeutige Vertices.</div>
+
+      <h4 class="lesson-subheading">Zweifarbiges Rendern mit Face Culling</h4>
+      <div class="lesson-flow">
+        <div class="flow-step"><strong>1. aktivieren</strong><code>glEnable(GL_CULL_FACE)</code><small>Culling einschalten</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><strong>2. Vorderseiten</strong><code>glCullFace(GL_BACK)</code><small>grün zeichnen</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><strong>3. Rückseiten</strong><code>glCullFace(GL_FRONT)</code><small>rot zeichnen</small></div>
+      </div>
+      <pre class="lesson-code"><code>glEnable(GL_CULL_FACE);
+
+for (Mesh mesh : meshes) {
+    glCullFace(GL_BACK);
+    shader.setUniform("uColor", Color.green());
+    mesh.draw();
+
+    glCullFace(GL_FRONT);
+    shader.setUniform("uColor", Color.red());
+    mesh.draw();
+}
+
+glDisable(GL_CULL_FACE);</code></pre>
+      <div class="lesson-note"><strong>Nicht verwechseln:</strong> <code>glCullFace(GL_BACK)</code> bedeutet nicht „Rückseiten zeichnen“, sondern „Rückseiten wegwerfen“.</div>
+    </section>
+
+    <section class="lesson-section" id="cg2-linien">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">02</span>
+        <div><h3>Aufgabe 1.2: Dreieckskanten als Linien</h3><p>Aus Face-Indizes werden Linien-Indizes.</p></div>
+      </div>
+
+      <div class="lesson-grid lesson-grid-2">
+        <div class="lesson-card"><h4>GL_TRIANGLES</h4><p>Je drei Indizes bilden ein Dreieck.</p><div class="formula">a, b, c</div></div>
+        <div class="lesson-card"><h4>GL_LINES</h4><p>Je zwei Indizes bilden eine einzelne Linie.</p><div class="formula">a,b &nbsp; b,c &nbsp; c,a</div></div>
+      </div>
+
+      <div class="formula formula-main">Für n Dreiecke: 3n Dreiecksindizes → 6n Linienindizes</div>
+      <pre class="lesson-code"><code>private int[] createLineIndices(int[] triangleIndices) {
+    if (triangleIndices == null || triangleIndices.length % 3 != 0) {
+        throw new IllegalArgumentException("Dreiecksindizes müssen in Dreiergruppen vorliegen.");
+    }
+
+    int[] lineIndices = new int[(triangleIndices.length / 3) * 6];
+    int out = 0;
+
+    for (int i = 0; i &lt; triangleIndices.length; i += 3) {
+        int a = triangleIndices[i];
+        int b = triangleIndices[i + 1];
+        int c = triangleIndices[i + 2];
+
+        lineIndices[out++] = a; lineIndices[out++] = b;
+        lineIndices[out++] = b; lineIndices[out++] = c;
+        lineIndices[out++] = c; lineIndices[out++] = a;
+    }
+    return lineIndices;
+}</code></pre>
+      <p class="lesson-text">Das Linienmesh verwendet dieselben Positionen wie das Flächenmesh, aber andere Indizes. Es wird anschließend mit <code>mesh.draw(GL_LINES)</code> und einer blauen Diffusfarbe gezeichnet.</p>
+      <div class="lesson-warning"><strong>Darstellungsartefakte:</strong> Fläche und Linie liegen exakt an derselben Position. Dadurch können Tiefenpuffer-Artefakte entstehen. Die Aufgabenstellung weist außerdem darauf hin, dass <code>glLineWidth()</code> nicht auf jeder GPU vollständig unterstützt wird.</div>
+    </section>
+
+    <section class="lesson-section" id="cg2-cube">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">03</span>
+        <div><h3>Aufgabe 2: Offener Würfel</h3><p>Acht Vertices, vier vorhandene Seiten und ein sichtbarer Rand.</p></div>
+      </div>
+
+      <div class="result-grid">
+        <div><span>Eindeutige Vertices</span><strong>8</strong></div>
+        <div><span>Vorhandene Seiten</span><strong>4</strong></div>
+        <div><span>Dreiecke</span><strong>8</strong></div>
+      </div>
+
+      <p class="lesson-text">Mit der halben Kantenlänge <code>s</code> besitzen alle Eckpunkte Koordinaten aus der Menge <code>{−s,+s}</code>. Dadurch liegt der Mittelpunkt des Würfels im Ursprung.</p>
+      <pre class="lesson-code"><code>float s = 0.5f;
+float[] positions = {
+    -s,-s,-s,   s,-s,-s,   s, s,-s,  -s, s,-s,
+    -s,-s, s,   s,-s, s,   s, s, s,  -s, s, s
+};</code></pre>
+      <p class="lesson-text">Ein mögliches Beispiel lässt die Vorder- und Oberseite weg. Die vier übrigen Seiten werden jeweils in zwei Dreiecke zerlegt:</p>
+      <pre class="lesson-code"><code>int[] indices = {
+    // Rückseite, Normale −z
+    0, 2, 1,   0, 3, 2,
+
+    // Unterseite, Normale −y
+    0, 1, 5,   0, 5, 4,
+
+    // linke Seite, Normale −x
+    0, 4, 7,   0, 7, 3,
+
+    // rechte Seite, Normale +x
+    1, 2, 6,   1, 6, 5
+};</code></pre>
+      <div class="lesson-note"><strong>Offenes Mesh:</strong> Die Kanten rund um die beiden fehlenden Seiten gehören nur zu einer Facette. Sie bilden den Rand des Netzes.</div>
+    </section>
+
+    <section class="lesson-section moebius-focus" id="cg2-moebius">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">04</span>
+        <div><h3>Aufgabe 3: Das Möbiusband wirklich verstehen</h3><p>Geometrie, Parameter, Indizes und Nichtorientierbarkeit Schritt für Schritt.</p></div>
+      </div>
+
+      <div class="moebius-build">
+        <div><span>1</span><strong>Papierstreifen</strong><small>zwei lange Ränder, scheinbar zwei Seiten</small></div>
+        <div class="flow-arrow">→</div>
+        <div><span>2</span><strong>180° verdrehen</strong><small>ein Ende wird auf den Kopf gestellt</small></div>
+        <div class="flow-arrow">→</div>
+        <div><span>3</span><strong>Enden verkleben</strong><small>Ober- und Unterseite gehen ineinander über</small></div>
+      </div>
+
+      <div class="lesson-grid lesson-grid-2">
+        <div class="lesson-card">
+          <h4>Parameter u</h4>
+          <p>Läuft entlang des großen Kreisrings einmal um das Band.</p>
+          <div class="formula">0 ≤ u &lt; 2π</div>
+        </div>
+        <div class="lesson-card">
+          <h4>Parameter v</h4>
+          <p>Läuft quer von einer Bandkante zur anderen.</p>
+          <div class="formula">−w ≤ v ≤ w</div>
+        </div>
+      </div>
+
+      <div class="formula-stack">
+        <div class="formula formula-accent">x(u,v) = (R + v/2 · cos(u/2)) · cos(u)</div>
+        <div class="formula formula-accent">y(u,v) = (R + v/2 · cos(u/2)) · sin(u)</div>
+        <div class="formula formula-accent">z(u,v) = v/2 · sin(u/2)</div>
+      </div>
+
+      <h4 class="lesson-subheading">Die Formel in drei Gedanken zerlegen</h4>
+      <div class="derivation derivation-vertical">
+        <div><span>1</span><p><strong><code>cos(u)</code> und <code>sin(u)</code></strong><br>legen die Position auf einem Kreis um die z-Achse fest.</p></div>
+        <div><span>2</span><p><strong><code>R + ...</code></strong><br>ist der aktuelle Abstand von der z-Achse. R ist der Hauptradius des Rings.</p></div>
+        <div><span>3</span><p><strong><code>cos(u/2)</code> und <code>sin(u/2)</code></strong><br>drehen den Querschnitt während eines Umlaufs um genau 180 Grad.</p></div>
+      </div>
+
+      <div class="lesson-callout"><strong>Der entscheidende Punkt:</strong> u macht einen Vollkreis von 0 bis 2π. u/2 macht im gleichen Zeitraum nur einen Halbkreis von 0 bis π. Deshalb entsteht genau die halbe Verdrehung.</div>
+
+      <h4 class="lesson-subheading">Vertices als zweidimensionales Gitter</h4>
+      <p class="lesson-text">Für jeden Wert von <code>u</code> erzeugst du mehrere Punkte über die Breite <code>v</code>. Ein Vertex lässt sich mit einer eindimensionalen Arrayposition speichern:</p>
+      <div class="formula">index(i,j) = i · (widthSteps + 1) + j</div>
+      <pre class="lesson-code"><code>for (int i = 0; i &lt; uSteps; i++) {
+    double u = 2.0 * Math.PI * i / uSteps;
+
+    for (int j = 0; j &lt;= widthSteps; j++) {
+        double v = -width + 2.0 * width * j / widthSteps;
+
+        double x = (radius + 0.5 * v * Math.cos(0.5 * u)) * Math.cos(u);
+        double y = (radius + 0.5 * v * Math.cos(0.5 * u)) * Math.sin(u);
+        double z =  0.5 * v * Math.sin(0.5 * u);
+
+        // x, y, z im positions-Array speichern
+    }
+}</code></pre>
+
+      <h4 class="lesson-subheading">Jedes Gitterfeld wird zu zwei Dreiecken</h4>
+      <div class="moebius-cell-grid">
+        <span>d = (i,j+1)</span><span>c = (i+1,j+1)</span>
+        <span>a = (i,j)</span><span>b = (i+1,j)</span>
+      </div>
+      <div class="formula">Dreiecke: (a,b,c) und (a,c,d)</div>
+
+      <h4 class="lesson-subheading">Warum die Naht umgedreht verbunden wird</h4>
+      <p class="lesson-text">Beim Übergang vom letzten u-Segment zum ersten Segment muss die Breite gespiegelt werden. Der Punkt an der linken Bandkante endet nach der halben Drehung an der rechten Bandkante.</p>
+      <div class="formula formula-main">j am Ende ↔ widthSteps − j am Anfang</div>
+      <pre class="lesson-code"><code>for (int i = 0; i &lt; uSteps; i++) {
+    int nextI = (i + 1) % uSteps;
+    boolean seam = (i == uSteps - 1);
+
+    for (int j = 0; j &lt; widthSteps; j++) {
+        int a = index(i, j);
+        int d = index(i, j + 1);
+
+        int nextJ0 = seam ? widthSteps - j     : j;
+        int nextJ1 = seam ? widthSteps - j - 1 : j + 1;
+
+        int b = index(nextI, nextJ0);
+        int c = index(nextI, nextJ1);
+
+        // a,b,c und a,c,d in das Indexarray schreiben
+    }
+}</code></pre>
+
+      <h4 class="lesson-subheading">Nichtorientierbarkeit</h4>
+      <div class="orientation-loop">
+        <div><strong>Start</strong><span>Normale n zeigt nach oben</span></div>
+        <div class="flow-arrow">→</div>
+        <div><strong>ein Umlauf</strong><span>Normale wird kontinuierlich mitgeführt</span></div>
+        <div class="flow-arrow">→</div>
+        <div><strong>gleicher Ort</strong><span>Normale zeigt jetzt als −n nach unten</span></div>
+      </div>
+      <p class="lesson-text">Daraus entsteht ein Widerspruch, wenn man eine globale Vorderseite festlegen möchte. Ein einzelnes Dreieck ist orientiert, aber das gesamte Möbiusband ist nicht orientierbar.</p>
+      <div class="lesson-warning"><strong>Folge beim Culling:</strong> Verfolgst du die lokal definierten Vorderseiten einmal um das Band, werden sie zwangsläufig zu Rückseiten. Deshalb kann ein Möbiusband nicht wie eine gewöhnliche geschlossene, orientierbare Oberfläche überall einheitlich behandelt werden.</div>
+    </section>
+
+    <section class="lesson-section" id="cg2-formeln">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">05</span>
+        <div><h3>Formelsammlung zu Blatt 2</h3><p>Das Wichtigste zum schnellen Wiederholen.</p></div>
+      </div>
+
+      <div class="formula-list">
+        <div><span>Dreiecksnormalenvektor</span><strong>n = (v₁ − v₀) × (v₂ − v₀)</strong></div>
+        <div><span>Orientierung umkehren</span><strong>(v₂ − v₀) × (v₁ − v₀) = −n</strong></div>
+        <div><span>OpenGL-Vorderseite</span><strong>standardmäßig CCW</strong></div>
+        <div><span>Culling aktivieren</span><strong>glEnable(GL_CULL_FACE)</strong></div>
+        <div><span>Vorderseiten rendern</span><strong>glCullFace(GL_BACK)</strong></div>
+        <div><span>Rückseiten rendern</span><strong>glCullFace(GL_FRONT)</strong></div>
+        <div><span>Linien aus Dreieck</span><strong>(a,b,c) → (a,b), (b,c), (c,a)</strong></div>
+        <div><span>Anzahl Linienindizes</span><strong>6 pro Dreieck</strong></div>
+        <div><span>Gitterindex</span><strong>index(i,j) = i · (widthSteps + 1) + j</strong></div>
+        <div><span>Möbius x</span><strong>x = (R + v/2 cos(u/2)) cos(u)</strong></div>
+        <div><span>Möbius y</span><strong>y = (R + v/2 cos(u/2)) sin(u)</strong></div>
+        <div><span>Möbius z</span><strong>z = v/2 sin(u/2)</strong></div>
+        <div><span>Naht</span><strong>j ↔ widthSteps − j</strong></div>
+        <div><span>Nichtorientierbarkeit</span><strong>Normale nach einem Umlauf: n → −n</strong></div>
+      </div>
+    </section>
+
+    <section class="lesson-section" id="cg2-wichtig">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">06</span>
+        <div><h3>Was du wirklich können solltest</h3><p>Priorisierung für die Klausur.</p></div>
+      </div>
+      <div class="priority-grid">
+        <div class="priority-card priority-high"><span>Sehr wichtig</span><ul><li>Winding Order erkennen und umkehren</li><li>Zusammenhang zwischen Vertexreihenfolge und Normale</li><li>Culling korrekt erklären</li><li>Linienindizes erzeugen</li><li>Möbiusparameter u und v verstehen</li><li>Nichtorientierbarkeit erklären</li></ul></div>
+        <div class="priority-card"><span>Grundverständnis</span><ul><li>acht eindeutige Würfelvertices</li><li>Quadrat in zwei Dreiecke zerlegen</li><li>offenes Mesh und Randkanten</li><li>Gitter in ein eindimensionales Array abbilden</li><li>Naht des Möbiusbandes spiegeln</li></ul></div>
+        <div class="priority-card priority-low"><span>Nicht stumpf auswendig lernen</span><ul><li>jede konkrete GUI-Zeile</li><li>beliebige Fenster- und Kamerawerte</li><li>genaue Anzahl der Möbiussegmente</li><li>deine vollständige Frameworkklasse</li></ul></div>
+      </div>
+    </section>
+
+    <section class="lesson-section" id="cg2-test">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">07</span>
+        <div><h3>Verständnisfragen mit Musterantworten</h3><p>Erst selbst beantworten und danach aufklappen.</p></div>
+      </div>
+
+      <div class="qa-list">
+        <details class="qa-item"><summary><span>1</span>Warum können dieselben drei Vertices zwei unterschiedlich orientierte Dreiecke bilden?</summary><div><p>Weil nicht nur die Punktmenge, sondern auch ihre Reihenfolge gespeichert wird. Durch Vertauschen zweier Indizes ändert sich der Umlaufsinn und das Kreuzprodukt erhält das entgegengesetzte Vorzeichen.</p></div></details>
+        <details class="qa-item"><summary><span>2</span>Was ist der Unterschied zwischen glCullFace(GL_BACK) und „Rückseiten rendern“?</summary><div><p>glCullFace(GL_BACK) verwirft die Rückseiten. Dadurch werden nur Vorderseiten gerendert. Um Rückseiten zu rendern, muss stattdessen GL_FRONT verworfen werden.</p></div></details>
+        <details class="qa-item"><summary><span>3</span>Wie werden aus dem Dreieck (a,b,c) Linienindizes?</summary><div><p>Die drei Dreieckskanten werden als drei Indexpärchen gespeichert: (a,b), (b,c) und (c,a). Das sind insgesamt sechs Indizes.</p></div></details>
+        <details class="qa-item"><summary><span>4</span>Warum besitzt der offene Würfel einen Rand?</summary><div><p>An den beiden Öffnungen gibt es Kanten, die nur zu einer vorhandenen Facette gehören. Die Menge dieser Kanten ist der Rand des offenen Meshes.</p></div></details>
+        <details class="qa-item"><summary><span>5</span>Was bedeuten u und v beim Möbiusband?</summary><div><p>u läuft entlang des Bandes einmal um den großen Kreis. v läuft quer über die Breite von einer Randkante zur anderen.</p></div></details>
+        <details class="qa-item"><summary><span>6</span>Warum erzeugt u/2 eine halbe Verdrehung?</summary><div><p>Während u von 0 bis 2π einen vollständigen Umlauf macht, verändert sich u/2 nur von 0 bis π. π entspricht einer Drehung um 180 Grad.</p></div></details>
+        <details class="qa-item"><summary><span>7</span>Warum ist das Möbiusband nicht orientierbar?</summary><div><p>Eine kontinuierlich mitgeführte Normale kehrt nach einem vollständigen Umlauf am gleichen Ort mit entgegengesetzter Richtung zurück. Daher kann keine widerspruchsfreie globale Vorderseite definiert werden.</p></div></details>
+        <details class="qa-item"><summary><span>8</span>Warum werden die Breitenindizes an der Möbiusnaht umgekehrt?</summary><div><p>Durch die 180-Grad-Drehung entspricht die eine Bandkante am Ende der gegenüberliegenden Bandkante am Anfang. Deshalb wird j mit widthSteps − j verbunden.</p></div></details>
+      </div>
+
+      <button class="start-btn lesson-quiz-button" onclick="startLessonQuiz()">Quiz zu Blatt 2 starten · 14 Fragen →</button>
+    </section>
+  </article>`;

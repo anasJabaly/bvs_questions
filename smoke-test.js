@@ -36,6 +36,7 @@ vm.runInContext("selectModule('cg')", context);
 assert.equal(elements["header-tag"].textContent, "Computergrafik");
 assert.match(elements.app.innerHTML, /Welches Aufgabenblatt/);
 assert.match(elements.app.innerHTML, /Blatt 1/);
+assert.match(elements.app.innerHTML, /Blatt 2/);
 
 vm.runInContext("selectBlock('blatt1')", context);
 assert.match(elements.app.innerHTML, /Formelsammlung zu Blatt 1/);
@@ -45,6 +46,12 @@ assert.match(elements.app.innerHTML, /Quiz zu Blatt 1 starten/);
 
 vm.runInContext("startLessonQuiz()", context);
 assert.match(elements.app.innerHTML, /Frage 1 \/ 12/);
+vm.runInContext("backToLesson(); backToBlocks(); selectBlock('blatt2')", context);
+assert.match(elements.app.innerHTML, /Das Möbiusband wirklich verstehen/);
+assert.match(elements.app.innerHTML, /Formelsammlung zu Blatt 2/);
+assert.match(elements.app.innerHTML, /Quiz zu Blatt 2 starten/);
+vm.runInContext("startLessonQuiz()", context);
+assert.match(elements.app.innerHTML, /Frage 1 \/ 14/);
 vm.runInContext("showModuleMenu()", context);
 
 vm.runInContext("selectModule('bwr')", context);

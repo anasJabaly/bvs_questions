@@ -475,3 +475,45 @@
   .chat-message { width:94%; padding:14px; }
   .chat-result-row, .chat-formula-list > div { grid-template-columns:1fr; }
 }
+
+/* ── Blatt 2: Möbiusband-Erklärungen ── */
+.moebius-mini-steps,
+.moebius-build,
+.orientation-loop {
+  display:flex; align-items:stretch; gap:8px; margin:1rem 0;
+}
+.moebius-mini-steps span,
+.moebius-build > div:not(.flow-arrow),
+.orientation-loop > div:not(.flow-arrow) {
+  flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;
+  min-height:76px; padding:10px; text-align:center; border:1px solid var(--border);
+  border-radius:10px; background:var(--surface2); color:var(--muted); font-size:11px;
+}
+.moebius-mini-steps b { align-self:center; color:var(--accent2); }
+.moebius-build span {
+  display:grid; place-items:center; width:25px; height:25px; margin-bottom:6px;
+  border-radius:50%; color:var(--accent2); background:rgba(124,106,247,.15); font-size:11px;
+}
+.moebius-build strong,
+.orientation-loop strong { color:var(--text); font-size:12px; }
+.moebius-build small,
+.orientation-loop span { margin-top:5px; color:var(--muted); font-size:10px; line-height:1.4; }
+.moebius-focus { border-top:3px solid var(--accent); }
+.moebius-cell-grid {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:1rem auto;
+  width:min(100%,420px);
+}
+.moebius-cell-grid span {
+  padding:12px; border:1px solid var(--border); border-radius:9px;
+  background:var(--surface2); color:var(--accent2); text-align:center;
+  font-family:var(--mono); font-size:11px;
+}
+
+@media (max-width:700px) {
+  .moebius-mini-steps,
+  .moebius-build,
+  .orientation-loop { flex-direction:column; }
+  .moebius-mini-steps b,
+  .moebius-build .flow-arrow,
+  .orientation-loop .flow-arrow { transform:rotate(90deg); min-height:20px; }
+}
