@@ -26,7 +26,6 @@ const MODULES = {
         cats: ["All", "Orientierung", "Culling", "Linienindizes", "Offener Würfel", "Möbiusband"],
         content: CG_SHEET_2_CONTENT,
       },
- (Computergrafik Lernmodul mit Blatt 2 hinzugefügt)
     },
   },
   bvs2: {
