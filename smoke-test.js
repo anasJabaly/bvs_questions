@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-const root = path.resolve(__dirname, "..");
+const root = path.resolve(__dirname);
 const elements = Object.fromEntries(
   ["app", "header-tag", "header-title", "header-subtitle"].map(id => [id, {innerHTML: "", textContent: ""}]),
 );
@@ -23,12 +23,28 @@ const context = vm.createContext({
   },
 });
 
-for (const file of ["questions.js", "bwr-questions.js", "dbii-questions.js", "modules.js", "quiz.js"]) {
+for (const file of ["questions.js", "bwr-questions.js", "dbii-questions.js", "cg-worksheets.js", "modules.js", "quiz.js"]) {
   vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), context, {filename: file});
 }
 
 assert.match(elements.app.innerHTML, /BVS2/);
 assert.match(elements.app.innerHTML, /Betriebswirtschaft und Recht/);
+assert.match(elements.app.innerHTML, /Computergrafik/);
+
+// Computergrafik-Lernblatt: Blätter-Menü, Lernseite und Quiz prüfen
+vm.runInContext("selectModule('cg')", context);
+assert.equal(elements["header-tag"].textContent, "Computergrafik");
+assert.match(elements.app.innerHTML, /Welches Aufgabenblatt/);
+assert.match(elements.app.innerHTML, /Blatt 1/);
+
+vm.runInContext("selectBlock('blatt1')", context);
+assert.match(elements.app.innerHTML, /Formelsammlung zu Blatt 1/);
+assert.match(elements.app.innerHTML, /Orthogonale Projektion/);
+assert.match(elements.app.innerHTML, /Quiz zu Blatt 1 starten/);
+
+vm.runInContext("startLessonQuiz()", context);
+assert.match(elements.app.innerHTML, /Frage 1 \/ 12/);
+vm.runInContext("showModuleMenu()", context);
 
 vm.runInContext("selectModule('bwr')", context);
 assert.equal(elements["header-tag"].textContent, "Betriebswirtschaft und Recht");

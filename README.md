@@ -1,12 +1,13 @@
 # Klausurtrainer
 
-Eine kleine, frameworkfreie Webapp zum Üben mehrerer Studienmodule. Aktuell sind enthalten:
+Eine kleine, frameworkfreie Webapp zum Lernen und Üben mehrerer Studienmodule. Aktuell sind enthalten:
 
+- **Computergrafik** mit ausführlichen Lernblättern, Formelsammlungen und passenden Quizfragen (aktuell Blatt 1)
 - **BVS2** mit Socket Programming, Web Services und Containerization
 - **BWR** mit sechs Vorlesungsblöcken und Fragen aus den Unterlagen des Sommersemesters 2026
 - **DBII** (Datenbanken II) mit acht Themenblöcken und über 100 Fragen aus den Vorlesungsfolien 1–12 des Sommersemesters 2026: Erweitertes ERM, Objektrelationale Erweiterungen, SQL für Data Science, JDBC, Transaktionen, Trigger, Zugriffspfade sowie DB Tuning und NoSQL
 
-Die App unterstützt Einzel- und Mehrfachantworten, Kategorien, gemischte Gesamtquizze und separat gespeicherte Fortschritte je Modul und Themenblock.
+Die App unterstützt ausführliche Lernseiten, Einzel- und Mehrfachantworten, Kategorien, gemischte Gesamtquizze und separat gespeicherte Fortschritte je Modul und Themenblock.
 
 ### Weitere Features
 
@@ -30,6 +31,8 @@ Danach `http://localhost:8000` öffnen.
 1. Eine neue Fragendatei anlegen, zum Beispiel `mathe-questions.js`.
 2. Die Datei in `index.html` vor `modules.js` einbinden.
 3. Das Modul und seine Themenblöcke in `modules.js` registrieren.
+
+Für ein Lernblatt kann ein Block zusätzlich ein HTML-Feld `content` erhalten. Dann öffnet die Blockkarte zuerst die Lernseite; ein Quiz kann weiterhin über das zugehörige `questions`-Array gestartet werden.
 
 Eine Frage hat dieses Format:
 

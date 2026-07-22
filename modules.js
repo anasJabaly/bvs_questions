@@ -2,6 +2,25 @@
 // Ein weiteres Studienmodul braucht nur eine eigene Fragendatei und einen
 // zusätzlichen Eintrag in MODULES.
 const MODULES = {
+  cg: {
+    title: "CG",
+    fullTitle: "Computergrafik",
+    description: "Lernblätter, Formelsammlungen und Quizfragen zur Klausurvorbereitung",
+    icon: "△",
+    kind: "worksheets",
+    menuLabel: "Blätter",
+    menuTitle: "Welches Aufgabenblatt möchtest du wiederholen?",
+    showAllQuiz: false,
+    blocks: {
+      blatt1: {
+        title: "Blatt 1",
+        sub: "OpenGL, Vektoren, Dreiecke & Projektion",
+        questions: CG_SHEET_1_QUESTIONS,
+        cats: ["All", "Framework", "OpenGL", "Animation", "Vektoren", "Dreiecksnormalen", "Winkel", "Dreieck", "Projektion"],
+        content: CG_SHEET_1_CONTENT,
+      },
+    },
+  },
   bvs2: {
     title: "BVS2",
     fullTitle: "BVS2 · Distributed Systems",

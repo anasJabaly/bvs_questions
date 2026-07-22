@@ -164,6 +164,17 @@ function updateHeader() {
   }
 
   tag.textContent = module.fullTitle;
+
+  if (module.kind === "worksheets") {
+    const block = activeBlock ? module.blocks[activeBlock] : null;
+    title.textContent = phase === "lesson" && block ? block.title : (module.menuLabel || "Lernblätter");
+    subtitle.textContent = phase === "lesson" && block
+      ? block.sub
+      : (module.menuTitle || "Wähle ein Lernblatt aus");
+    document.title = `${module.title} — ${block && phase === "lesson" ? block.title : (module.menuLabel || "Lernblätter")}`;
+    return;
+  }
+
   title.textContent = "Klausur Quiz";
   subtitle.textContent = "Wähle einen Themenblock oder übe das ganze Modul";
   document.title = `${module.title} — Klausur Quiz`;
@@ -179,9 +190,14 @@ function renderModuleSelect(app) {
   const cards = Object.entries(MODULES).map(([key, module]) => {
     const blockCount = Object.keys(module.blocks).length;
     const questionCount = moduleQuestionCount(key);
+    const isWorksheets = module.kind === "worksheets";
+    const blockLabel = isWorksheets
+      ? `${blockCount} ${blockCount === 1 ? "Blatt" : "Blätter"}`
+      : `${blockCount} Themenblöcke`;
+    const questionLabel = isWorksheets ? `${questionCount} Lernfragen` : `${questionCount} Fragen`;
     const stats = moduleStats(key);
     const statsLine = stats
-      ? `<span class="module-stats"><span class="module-stats-bar"><span class="module-stats-fill" style="width:${stats.avgBest}%"></span></span>${stats.practiced}/${stats.total} Blöcke geübt · Ø Best ${stats.avgBest}%</span>`
+      ? `<span class="module-stats"><span class="module-stats-bar"><span class="module-stats-fill" style="width:${stats.avgBest}%"></span></span>${stats.practiced}/${stats.total} ${isWorksheets ? "Blätter" : "Blöcke"} geübt · Ø Best ${stats.avgBest}%</span>`
       : "";
     return `
       <button type="button" class="module-card" onclick="selectModule('${key}')">
@@ -189,7 +205,7 @@ function renderModuleSelect(app) {
         <span class="module-copy">
           <span class="module-title">${module.fullTitle}</span>
           <span class="module-sub">${module.description}</span>
-          <span class="module-meta">${blockCount} Themenblöcke · ${questionCount} Fragen</span>
+          <span class="module-meta">${blockLabel} · ${questionLabel}</span>
           ${statsLine}
         </span>
         <span class="module-arrow" aria-hidden="true">→</span>
@@ -206,36 +222,59 @@ function renderModuleSelect(app) {
 
 function renderBlockSelect(app) {
   const module = currentModule();
+  const isWorksheets = module.kind === "worksheets";
   const cards = Object.entries(module.blocks).map(([key, block]) => {
     const count = block.questions.length;
+    const hasContent = Boolean(block.content);
+    const disabled = count === 0 && !hasContent;
     const stats = statsFor(activeModule, key);
     const statsLine = stats
       ? `<div class="bc-stats"><div class="bc-bar"><div class="bc-bar-fill ${stats.best >= 80 ? "good" : ""}" style="width:${stats.best}%"></div></div><span class="bc-best">Best ${stats.best}%</span></div>`
       : "";
+    const countText = hasContent
+      ? `Lernseite${count > 0 ? ` · ${count} Fragen` : ""}`
+      : (count === 0 ? "kommt noch" : `${count} Fragen`);
     return `
-      <button type="button" class="block-card ${count === 0 ? "disabled" : ""}"
-        ${count === 0 ? "disabled" : `onclick="selectBlock('${key}')"`}>
-        ${count === 0 ? '<span class="bc-badge">in Arbeit</span>' : ""}
+      <button type="button" class="block-card ${disabled ? "disabled" : ""}"
+        ${disabled ? "disabled" : `onclick="selectBlock('${key}')"`}>
+        ${disabled ? '<span class="bc-badge">in Arbeit</span>' : ""}
+        ${hasContent ? '<span class="bc-badge bc-ready">Lernblatt</span>' : ""}
         <div class="bc-title">${block.title}</div>
         <div class="bc-sub">${block.sub}</div>
-        <span class="bc-count">${count === 0 ? "kommt noch" : `${count} Fragen`}</span>
+        <span class="bc-count">${countText}</span>
         ${resumeTag(activeModule, key)}
         ${statsLine}
       </button>`;
   }).join("");
   const total = moduleQuestionCount(activeModule);
-
-  app.innerHTML = `
-    <button class="back-link module-back" onclick="showModuleMenu()">← Alle Module</button>
-    <div class="block-grid">
-      ${cards}
+  const allCard = module.showAllQuiz === false ? "" : `
       <button type="button" class="block-card full-width" onclick="selectBlock('all')">
         <div class="bc-title">🎓 Ganzes Modul</div>
         <div class="bc-sub">Alle verfügbaren Themen gemischt</div>
         <span class="bc-count">${total} Fragen</span>
         ${resumeTag(activeModule, "all")}
-      </button>
+      </button>`;
+
+  app.innerHTML = `
+    <button class="back-link module-back" onclick="showModuleMenu()">← Alle Module</button>
+    ${isWorksheets ? `<div class="section-intro block-intro"><span class="eyebrow">${module.menuLabel || "Lernblätter"}</span><h2>${module.menuTitle || "Wähle ein Blatt aus"}</h2></div>` : ""}
+    <div class="block-grid ${isWorksheets ? "worksheet-grid" : ""}">
+      ${cards}
+      ${allCard}
     </div>`;
+}
+
+function renderLesson(app) {
+  const block = currentModule()?.blocks[activeBlock];
+  if (!block || !block.content) {
+    phase = "blockselect";
+    render();
+    return;
+  }
+
+  app.innerHTML = `
+    <button class="back-link lesson-back" onclick="backToBlocks()">← Zurück zu den Blättern</button>
+    ${block.content}`;
 }
 
 function renderResume(app) {
@@ -247,8 +286,9 @@ function renderResume(app) {
   }
   const module = currentModule();
   const title = activeBlock === "all" ? "Ganzes Modul" : module.blocks[activeBlock].title;
+  const lessonResume = currentModule()?.kind === "worksheets" && currentModule()?.blocks[activeBlock]?.content;
   app.innerHTML = `
-    <button class="back-link" onclick="backToBlocks()">← Zurück zur Themenauswahl</button>
+    <button class="back-link" onclick="${lessonResume ? "backToLesson()" : "backToBlocks()"}">← ${lessonResume ? "Zurück zum Lernblatt" : "Zurück zur Themenauswahl"}</button>
     <div class="resume-card">
       <div class="resume-title">${title}</div>
       <div class="resume-sub">Du hast einen gespeicherten Fortschritt:<br>
@@ -363,6 +403,7 @@ function render() {
 
   if (phase === "moduleselect") return renderModuleSelect(app);
   if (phase === "blockselect") return renderBlockSelect(app);
+  if (phase === "lesson") return renderLesson(app);
   if (phase === "resume") return renderResume(app);
   if (phase === "start") return renderStart(app);
   if (phase === "done") return renderDone(app);
@@ -399,7 +440,34 @@ function selectBlock(blockKey) {
     ? ["All"]
     : currentModule().blocks[blockKey].cats;
   filterCat = "All";
-  phase = hasSavedFor(activeModule, blockKey) ? "resume" : "start";
+
+  const block = blockKey === "all" ? null : currentModule().blocks[blockKey];
+  if (block?.content) {
+    phase = "lesson";
+  } else {
+    phase = hasSavedFor(activeModule, blockKey) ? "resume" : "start";
+  }
+  render();
+}
+
+function startLessonQuiz() {
+  const block = currentModule()?.blocks[activeBlock];
+  if (!block || block.questions.length === 0) return;
+  activePool = block.questions;
+  activeCats = block.cats || ["All"];
+  filterCat = "All";
+
+  if (hasSavedFor(activeModule, activeBlock)) {
+    phase = "resume";
+    render();
+    return;
+  }
+  startQuiz();
+}
+
+function backToLesson() {
+  const block = currentModule()?.blocks[activeBlock];
+  phase = block?.content ? "lesson" : "blockselect";
   render();
 }
 
