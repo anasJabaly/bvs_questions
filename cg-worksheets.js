@@ -162,6 +162,168 @@ const CG_SHEET_1_QUESTIONS = [
   }
 ];
 
+
+const CG_SHEET_1_CHAT = `
+    <section class="lesson-section chat-lesson-section" id="cg1-chat">
+      <div class="lesson-section-heading">
+        <span class="lesson-number">💬</span>
+        <div><h3>Originaler Lern-Chat zu Blatt 1</h3><p>Der vollständige Lernabschnitt ab der von dir gewünschten Stelle. Im Bereich kannst du unabhängig von der Seite scrollen.</p></div>
+      </div>
+
+      <div class="study-chat" aria-label="Scrollbarer Lern-Chat zu Aufgabenblatt 1">
+        <div class="chat-message chat-assistant">
+          <div class="chat-role">ChatGPT</div>
+          <p>Die handschriftliche Lösung zu Aufgabe 4 sehe ich in den Dateien nicht. Deshalb erkläre ich dort die korrekte Musterlösung.</p>
+          <h3>Blatt 1 – Verständnis und Kontrolle</h3>
+
+          <h4>Aufgabe 1: IDE, CGFramework und LWJGL</h4>
+          <p>Hier gab es kaum mathematischen Inhalt. Das Ziel war, das Framework zu starten und seinen grundlegenden Aufbau kennenzulernen. Hauptsächlich wird die Klasse <code>Sandbox</code> verändert.</p>
+          <pre class="chat-code"><code>init()
+update(deltaTime)
+draw()
+createMeshes()</code></pre>
+          <p><strong><code>init()</code>:</strong> Wird normalerweise einmal beim Programmstart ausgeführt. Dort werden beispielsweise Kameras, Shader, Szene, Benutzeroberfläche und Meshes erstellt.</p>
+          <p><strong><code>update(deltaTime)</code>:</strong> Wird in jedem Frame vor dem Zeichnen aufgerufen. Dort gehören Benutzereingaben, Animationen, Positionsänderungen und Zeitaktualisierungen hinein.</p>
+          <p><strong><code>draw()</code>:</strong> Wird in jedem Frame ausgeführt und zeichnet die Szene.</p>
+          <p><strong><code>createMeshes()</code>:</strong> Erstellt geometrische Objekte und fügt sie der Szene hinzu.</p>
+          <div class="chat-note"><strong>Klausurrelevanz:</strong> <code>init</code> → einmalige Initialisierung, <code>update</code> → Logik und Animation pro Frame, <code>draw</code> → Darstellung pro Frame.</div>
+
+          <h4>Aufgabe 2: Veränderung der Hintergrundfarbe</h4>
+          <p>OpenGL-Farben werden mit vier Werten dargestellt:</p>
+          <div class="chat-formula">(r, g, b, a), &nbsp; 0 ≤ r,g,b,a ≤ 1</div>
+          <p><code>r</code> steht für Rot, <code>g</code> für Grün, <code>b</code> für Blau und <code>a</code> für den Alphakanal.</p>
+          <pre class="chat-code"><code>m_colorTime += deltaTime;
+
+float r = (float)(0.5 + 0.5 * Math.sin(m_colorTime * 0.5));
+float g = (float)(0.5 + 0.5 * Math.sin(m_colorTime * 0.7 + 2.0));
+float b = (float)(0.5 + 0.5 * Math.sin(m_colorTime * 0.3 + 4.0));
+
+glClearColor(r, g, b, 1.0f);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);</code></pre>
+          <p>Die Sinusfunktion liefert Werte zwischen −1 und 1. Durch Multiplikation mit 0,5 entsteht der Bereich [−0,5; 0,5]. Durch Addition von 0,5 entsteht genau der für OpenGL benötigte Bereich [0; 1].</p>
+          <div class="chat-formula">−1 ≤ sin(t) ≤ 1<br>−0,5 ≤ 0,5 · sin(t) ≤ 0,5<br>0 ≤ 0,5 + 0,5 · sin(t) ≤ 1</div>
+          <p><strong>Warum <code>deltaTime</code>?</strong> <code>deltaTime</code> gibt an, wie viel Zeit seit dem letzten Frame vergangen ist. Dadurch läuft die Animation auf Rechnern mit unterschiedlichen FPS ungefähr gleich schnell.</p>
+          <p><strong>Wichtiger Unterschied:</strong> <code>glClearColor()</code> legt nur die Farbe fest, mit der gelöscht werden soll. Erst <code>glClear()</code> überschreibt den jeweiligen Puffer tatsächlich.</p>
+
+          <h4>Aufgabe 3: Vektoren und Dreiecke</h4>
+          <p>Das Dreieck besitzt die Punkte:</p>
+          <div class="chat-formula">A = (−0,5; −0,5; 0), &nbsp; B = (0,5; −0,5; 0), &nbsp; C = (0; 0,5; 0)</div>
+
+          <h5>3a: Normale des Dreiecks</h5>
+          <p>Zuerst werden zwei Vektoren gebildet, die auf der Dreiecksfläche liegen:</p>
+          <div class="chat-formula">AB = B − A = (1; 0; 0)<br>AC = C − A = (0,5; 1; 0)</div>
+          <p>Die Normale ergibt sich aus dem Kreuzprodukt:</p>
+          <div class="chat-formula chat-formula-accent">n = AB × AC = (0; 0; 1)</div>
+          <p>Das Kreuzprodukt steht senkrecht auf beiden Spannvektoren und damit senkrecht auf der Dreiecksfläche. Der Vektor besitzt bereits die Länge 1.</p>
+          <p><strong>Reihenfolge beachten:</strong></p>
+          <div class="chat-formula">u × v = −(v × u)</div>
+          <p>Beim Vertauschen bleibt der Betrag gleich, aber die Normale zeigt in die entgegengesetzte Richtung.</p>
+
+          <h5>3b: Innenwinkel</h5>
+          <div class="chat-formula chat-formula-accent">α = arccos((u · v) / (‖u‖ · ‖v‖))</div>
+          <p>Beide verwendeten Vektoren müssen am Eckpunkt beginnen, dessen Winkel berechnet werden soll.</p>
+          <div class="chat-result-row">
+            <span>Winkel A ≈ 63,43°</span>
+            <span>Winkel B ≈ 63,43°</span>
+            <span>Winkel C ≈ 53,13°</span>
+          </div>
+          <p>Kontrolle: 63,43° + 63,43° + 53,13° ≈ 180°.</p>
+          <p>Für eine robuste Implementierung kann der Wert vor <code>acos</code> auf den Bereich [−1; 1] begrenzt werden:</p>
+          <pre class="chat-code"><code>double cosAlpha = dot(u, v) / (length(u) * length(v));
+cosAlpha = Math.max(-1.0, Math.min(1.0, cosAlpha));
+double alpha = Math.toDegrees(Math.acos(cosAlpha));</code></pre>
+
+          <h5>3c: Kantenlängen</h5>
+          <div class="chat-formula">d(A,B) = ‖B − A‖</div>
+          <div class="chat-result-row">
+            <span>|AB| = 1</span>
+            <span>|BC| = √5 / 2 ≈ 1,1180</span>
+            <span>|CA| = √5 / 2 ≈ 1,1180</span>
+          </div>
+          <p>Da zwei Seiten gleich lang sind, ist das Dreieck gleichschenklig.</p>
+
+          <h4>Aufgabe 4: Orthogonale Projektion</h4>
+          <div class="chat-formula chat-formula-main">proj<sub>u</sub>(v) = ((u · v) / (u · u)) · u</div>
+          <p><strong>Schritt 1:</strong> Einheitsvektor in Richtung von <em>u</em>:</p>
+          <div class="chat-formula">û = u / ‖u‖</div>
+          <p><strong>Schritt 2:</strong> Aus dem rechtwinkligen Dreieck folgt für die Länge der Projektion:</p>
+          <div class="chat-formula">t = ‖v‖ cos(α)</div>
+          <p><strong>Schritt 3:</strong> Mit dem Skalarprodukt <code>u · v = ‖u‖ ‖v‖ cos(α)</code> erhält man:</p>
+          <div class="chat-formula">t = (u · v) / ‖u‖</div>
+          <p><strong>Schritt 4:</strong> Länge mal Richtung:</p>
+          <div class="chat-formula">proj<sub>u</sub>(v) = t · û = ((u · v) / ‖u‖²) · u</div>
+          <p>Da <code>‖u‖² = u · u</code> gilt, folgt die bekannte Formel.</p>
+          <p>Ist <em>u</em> bereits normalisiert, gilt <code>u · u = 1</code> und die Formel vereinfacht sich zu:</p>
+          <div class="chat-formula chat-formula-accent">proj<sub>u</sub>(v) = (u · v) · u</div>
+
+          <h4>Formelsammlung – Blatt 1</h4>
+          <div class="chat-formula-list">
+            <div><b>Vektor von A nach B</b><span>AB = B − A</span></div>
+            <div><b>Vektorlänge</b><span>‖v‖ = √(vₓ² + vᵧ² + v𝓏²) = √(v · v)</span></div>
+            <div><b>Normalisierung</b><span>v̂ = v / ‖v‖ und ‖v̂‖ = 1</span></div>
+            <div><b>Skalarprodukt</b><span>u · v = uₓvₓ + uᵧvᵧ + u𝓏v𝓏</span></div>
+            <div><b>Winkel</b><span>α = arccos((u · v) / (‖u‖ ‖v‖))</span></div>
+            <div><b>Orthogonalität</b><span>u ⟂ v ⇔ u · v = 0</span></div>
+            <div><b>Dreiecksnormalenvektor</b><span>n = (B − A) × (C − A)</span></div>
+            <div><b>Dreiecksfläche</b><span>A△ = ½ ‖(B − A) × (C − A)‖</span></div>
+            <div><b>Orthogonale Projektion</b><span>projᵤ(v) = ((u · v) / (u · u)) · u</span></div>
+          </div>
+
+          <h4>Was du wirklich können musst</h4>
+          <p><strong>Sehr wichtig:</strong> Differenzvektoren, Vektorlänge, Normalisierung, Skalarprodukt, Winkel, Kreuzprodukt, Dreiecksnormalen und orthogonale Projektion.</p>
+          <p><strong>Grundverständnis:</strong> <code>init</code>, <code>update</code> und <code>draw</code>, <code>deltaTime</code>, RGBA sowie <code>glClearColor</code> und <code>glClear</code>.</p>
+          <p><strong>Nicht auswendig lernen:</strong> vollständige Swing-GUI, Screenshot-Code, Fenstergrößen und alle Framework-Initialisierungen.</p>
+
+          <h4>Mini-Test</h4>
+          <ol class="chat-question-list">
+            <li>Warum berechnet man eine Dreiecksnormalen mit (B−A) × (C−A)?</li>
+            <li>Was ändert sich, wenn man die Reihenfolge beim Kreuzprodukt vertauscht?</li>
+            <li>Welche Länge besitzt jeder normalisierte Vektor?</li>
+            <li>Warum steht bei der Projektionsformel u · u im Nenner?</li>
+            <li>Warum reicht glClearColor() allein nicht aus, um den Hintergrund neu einzufärben?</li>
+          </ol>
+        </div>
+
+        <div class="chat-message chat-user">
+          <div class="chat-role">Du</div>
+          <p><strong>1.</strong> Um den Normalvektor herauszubekommen, der senkrecht auf beiden Vektoren steht.</p>
+          <p><strong>2.</strong> Es entsteht ein anderes Ergebnis beziehungsweise der Vektor zeigt in die andere Richtung.</p>
+          <p><strong>3.</strong> 1.</p>
+          <p><strong>4.</strong> Weil der Betrag von u zum Quadrat gleich u · u ist.</p>
+          <p><strong>5.</strong> Weil glClearColor nur speichert, mit welcher Farbe gelöscht werden soll. Erst im nächsten Schritt wird die Farbe tatsächlich in den Puffer geschrieben.</p>
+        </div>
+
+        <div class="chat-message chat-assistant">
+          <div class="chat-role">ChatGPT</div>
+          <p><strong>Sehr gut – inhaltlich sind alle fünf Antworten richtig.</strong> Bei Nummer 4 solltest du in der Klausur noch etwas genauer formulieren.</p>
+
+          <h4>1. Dreiecksnormalenvektor ✅</h4>
+          <p>Das Kreuzprodukt zweier Spannvektoren des Dreiecks liefert einen Vektor, der senkrecht auf beiden Spannvektoren und damit senkrecht auf der Dreiecksfläche steht.</p>
+          <div class="chat-formula">n = (B − A) × (C − A)</div>
+
+          <h4>2. Reihenfolge des Kreuzprodukts ✅</h4>
+          <p>Der Betrag bleibt gleich, aber der Vektor zeigt anschließend in die entgegengesetzte Richtung.</p>
+          <div class="chat-formula">u × v = −(v × u)</div>
+
+          <h4>3. Länge eines normalisierten Vektors ✅</h4>
+          <div class="chat-formula">‖v̂‖ = 1</div>
+          <p>Ein normalisierter Vektor wird deshalb auch Einheitsvektor genannt.</p>
+
+          <h4>4. Nenner der Projektionsformel ✅ mit Ergänzung</h4>
+          <p>Es gilt <code>u · u = ‖u‖²</code>. Der Nenner gleicht die Länge von <em>u</em> aus. Dadurch hängt die Projektion nur von der Richtung von <em>u</em> ab und nicht davon, wie lang beziehungsweise wie stark skaliert <em>u</em> ist.</p>
+          <div class="chat-formula">proj<sub>u</sub>(v) = ((u · v) / (u · u)) · u</div>
+
+          <h4>5. glClearColor() und glClear() ✅</h4>
+          <p><code>glClearColor(r,g,b,a)</code> speichert nur die Löschfarbe. <code>glClear(GL_COLOR_BUFFER_BIT)</code> führt das Überschreiben des Farbpuffers tatsächlich aus.</p>
+          <pre class="chat-code"><code>glClearColor(r, g, b, 1.0f);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);</code></pre>
+
+          <div class="chat-success"><strong>Ergebnis: 5 von 5 richtig.</strong><br>Besonders merken: <code>u × v = −(v × u)</code> und <code>u · u = ‖u‖²</code>.</div>
+        </div>
+      </div>
+      <p class="chat-scroll-hint">↕ Im Chatfenster scrollen, um den vollständigen Verlauf zu lesen.</p>
+    </section>`;
+
 const CG_SHEET_1_CONTENT = `
   <article class="lesson-page">
     <section class="lesson-hero">
@@ -174,6 +336,7 @@ const CG_SHEET_1_CONTENT = `
     </section>
 
     <nav class="lesson-toc" aria-label="Inhaltsverzeichnis">
+      <a href="#cg1-chat">Lern-Chat</a>
       <a href="#cg1-ueberblick">Überblick</a>
       <a href="#cg1-framework">Framework</a>
       <a href="#cg1-farbe">Hintergrundfarbe</a>
@@ -182,6 +345,8 @@ const CG_SHEET_1_CONTENT = `
       <a href="#cg1-formeln">Formelsammlung</a>
       <a href="#cg1-test">Fragen & Antworten</a>
     </nav>
+
+    ${CG_SHEET_1_CHAT}
 
     <section class="lesson-section" id="cg1-ueberblick">
       <div class="lesson-section-heading">

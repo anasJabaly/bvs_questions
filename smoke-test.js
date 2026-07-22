@@ -39,6 +39,7 @@ assert.match(elements.app.innerHTML, /Blatt 1/);
 
 vm.runInContext("selectBlock('blatt1')", context);
 assert.match(elements.app.innerHTML, /Formelsammlung zu Blatt 1/);
+assert.match(elements.app.innerHTML, /Originaler Lern-Chat zu Blatt 1/);
 assert.match(elements.app.innerHTML, /Orthogonale Projektion/);
 assert.match(elements.app.innerHTML, /Quiz zu Blatt 1 starten/);
 
