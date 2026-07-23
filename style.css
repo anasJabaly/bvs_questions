@@ -1,11 +1,11 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg:#0f1117; --surface:#1a1d27; --surface2:#222637; --border:#2e3347;
-    --accent:#7c6af7; --accent2:#a89cf8; --text:#e8eaf6; --muted:#7b80a0;
-    --success:#34d399; --success-bg:#0d2e22; --danger:#f87171; --danger-bg:#2e0d0d;
+    --bg:#f5f7fc; --surface:#ffffff; --surface2:#eef2ff; --border:#d7dff1;
+    --accent:#6f5ef6; --accent2:#5247c7; --text:#1f2745; --muted:#5f6888;
+    --success:#178a5d; --success-bg:#e9f8f0; --danger:#d94d63; --danger-bg:#fff0f3;
     --radius:12px; --font:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
   }
-  body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:2rem 1rem 4rem; }
+  body { background:linear-gradient(180deg,#f9fbff 0%, #eef3ff 100%); color:var(--text); font-family:var(--font); min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:2rem 1rem 4rem; }
   .quiz-shell { width:100%; max-width:680px; }
   .quiz-header { text-align:center; margin-bottom:2rem; }
   .quiz-header .tag { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--accent2); background:rgba(124,106,247,.15); border:1px solid rgba(124,106,247,.3); padding:4px 14px; border-radius:99px; margin-bottom:1rem; }
@@ -17,7 +17,7 @@
   .section-intro .eyebrow { display:block; margin-bottom:.35rem; color:var(--accent2); font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; }
   .section-intro h2 { color:var(--text); font-size:1.15rem; font-weight:600; }
   .module-grid { display:grid; gap:12px; }
-  .module-card { display:flex; align-items:center; gap:14px; width:100%; padding:1.25rem; color:var(--text); text-align:left; font-family:var(--font); background:linear-gradient(135deg,var(--surface),rgba(34,38,55,.75)); border:1.5px solid var(--border); border-radius:var(--radius); cursor:pointer; transition:transform .18s,border-color .18s,background .18s; }
+  .module-card { display:flex; align-items:center; gap:14px; width:100%; padding:1.25rem; color:var(--text); text-align:left; font-family:var(--font); background:linear-gradient(135deg,var(--surface),rgba(238,243,255,.96)); border:1.5px solid var(--border); border-radius:var(--radius); cursor:pointer; transition:transform .18s,border-color .18s,background .18s; }
   .module-card:hover { transform:translateY(-2px); border-color:var(--accent); background:linear-gradient(135deg,rgba(124,106,247,.12),var(--surface)); }
   .module-card:active { transform:translateY(0); }
   .module-icon { display:grid; place-items:center; flex:0 0 48px; height:48px; color:var(--accent2); font-family:var(--mono); font-size:1.25rem; font-weight:600; background:rgba(124,106,247,.14); border:1px solid rgba(124,106,247,.35); border-radius:12px; }
@@ -257,7 +257,7 @@
 }
 .lesson-toc {
   display:flex; flex-wrap:wrap; gap:7px; position:sticky; top:8px; z-index:5;
-  padding:10px; background:rgba(15,17,23,.92); backdrop-filter:blur(12px);
+  padding:10px; background:rgba(255,255,255,.92); backdrop-filter:blur(12px);
   border:1px solid var(--border); border-radius:12px;
 }
 .lesson-toc a {
@@ -411,7 +411,7 @@
 .study-chat {
   max-height:680px; overflow-y:auto; overscroll-behavior:contain; scroll-behavior:smooth;
   padding:18px; border:1px solid var(--border); border-radius:14px;
-  background:linear-gradient(180deg,var(--bg),rgba(15,17,23,.72));
+  background:linear-gradient(180deg,var(--bg),rgba(245,247,252,.78));
   scrollbar-width:thin; scrollbar-color:rgba(124,106,247,.55) transparent;
 }
 .study-chat::-webkit-scrollbar { width:9px; }

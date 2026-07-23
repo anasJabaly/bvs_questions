@@ -208,6 +208,69 @@ function poolForBlock(moduleKey, blockKey) {
   return module.blocks[blockKey]?.questions || [];
 }
 
+function refreshDerivedState() {
+  if (activeModule && activeBlock) {
+    activePool = poolForBlock(activeModule, activeBlock);
+    activeCats = activeBlock === "all" ? ["All"] : (currentBlocks()[activeBlock]?.cats || ["All"]);
+  } else {
+    activePool = [];
+    activeCats = ["All"];
+  }
+}
+
+function snapshotState() {
+  return JSON.parse(JSON.stringify({
+    activeModule, activeGroup, activeBlock, questions, idx, score, sel, answered, phase, filterCat, wrongs, reviewMode, matchChoice,
+  }));
+}
+
+let isRestoringHistory = false;
+
+function syncHistory(mode = "replace") {
+  if (isRestoringHistory || typeof window === "undefined" || !window.history?.replaceState) return;
+  const state = snapshotState();
+  if (mode === "push") window.history.pushState(state, "");
+  else window.history.replaceState(state, "");
+}
+
+function restoreState(state) {
+  activeModule = state?.activeModule ?? null;
+  activeGroup = state?.activeGroup ?? null;
+  activeBlock = state?.activeBlock ?? null;
+  questions = state?.questions || [];
+  idx = state?.idx || 0;
+  score = state?.score || 0;
+  sel = state?.sel ?? null;
+  answered = Boolean(state?.answered);
+  phase = state?.phase || "moduleselect";
+  filterCat = state?.filterCat || "All";
+  wrongs = state?.wrongs || [];
+  reviewMode = Boolean(state?.reviewMode);
+  matchChoice = state?.matchChoice ?? null;
+  refreshDerivedState();
+}
+
+function renderAndSync(mode = "replace") {
+  render();
+  syncHistory(mode);
+  if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+    window.scrollTo({top: 0, left: 0, behavior: "auto"});
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", event => {
+    if (!event.state) return;
+    isRestoringHistory = true;
+    restoreState(event.state);
+    render();
+    if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+      window.scrollTo({top: 0, left: 0, behavior: "auto"});
+    }
+    isRestoringHistory = false;
+  });
+}
+
 function updateHeader() {
   const tag = document.getElementById("header-tag");
   const title = document.getElementById("header-title");
@@ -391,7 +454,7 @@ function renderResume(app) {
   const saved = loadProgress(activeModule, activeBlock);
   if (!saved) {
     phase = "start";
-    render();
+    renderAndSync("push");
     return;
   }
   const module = currentModule();
@@ -492,7 +555,7 @@ function updateFillAnswer(value) {
 function selectMatchOption(rightIndex) {
   if (answered) return;
   matchChoice = matchChoice === rightIndex ? null : rightIndex;
-  render();
+  renderAndSync();
 }
 
 function assignMatch(leftIndex, rightIndex) {
@@ -505,7 +568,7 @@ function assignMatch(leftIndex, rightIndex) {
   });
   matchChoice = null;
   saveProgress();
-  render();
+  renderAndSync();
 }
 
 function matchTargetClick(leftIndex) {
@@ -519,7 +582,7 @@ function matchTargetClick(leftIndex) {
   if (assignment[leftIndex] !== null) {
     sel = assignment.map((value, index) => index === leftIndex ? null : value);
     saveProgress();
-    render();
+    renderAndSync();
   }
 }
 
@@ -665,7 +728,7 @@ function selectModule(moduleKey) {
   activeBlock = null;
   filterCat = "All";
   phase = MODULES[moduleKey].groups ? "groupselect" : "blockselect";
-  render();
+  renderAndSync("push");
 }
 
 function selectGroup(groupKey) {
@@ -673,7 +736,7 @@ function selectGroup(groupKey) {
   activeBlock = null;
   filterCat = "All";
   phase = "blockselect";
-  render();
+  renderAndSync("push");
 }
 
 function showModuleMenu() {
@@ -682,7 +745,7 @@ function showModuleMenu() {
   activeBlock = null;
   filterCat = "All";
   phase = "moduleselect";
-  render();
+  renderAndSync("push");
 }
 
 function backToGroups() {
@@ -690,14 +753,14 @@ function backToGroups() {
   activeBlock = null;
   filterCat = "All";
   phase = "groupselect";
-  render();
+  renderAndSync("push");
 }
 
 function backToBlocks() {
   activeBlock = null;
   filterCat = "All";
   phase = "blockselect";
-  render();
+  renderAndSync("push");
 }
 
 function selectBlock(blockKey) {
@@ -714,7 +777,7 @@ function selectBlock(blockKey) {
   } else {
     phase = hasSavedFor(activeModule, blockKey) ? "resume" : "start";
   }
-  render();
+  renderAndSync("push");
 }
 
 function startLessonQuiz() {
@@ -726,7 +789,7 @@ function startLessonQuiz() {
 
   if (hasSavedFor(activeModule, activeBlock)) {
     phase = "resume";
-    render();
+    renderAndSync("push");
     return;
   }
   startQuiz();
@@ -735,14 +798,14 @@ function startLessonQuiz() {
 function backToLesson() {
   const block = currentBlock();
   phase = block?.content ? "lesson" : "blockselect";
-  render();
+  renderAndSync("push");
 }
 
 function resumeBlock() {
   const saved = loadProgress(activeModule, activeBlock);
   if (!saved) {
     phase = "start";
-    render();
+    renderAndSync("push");
     return;
   }
 
@@ -761,25 +824,25 @@ function resumeBlock() {
   reviewMode = saved.reviewMode || false;
   matchChoice = saved.matchChoice ?? null;
   phase = "quiz";
-  render();
+  renderAndSync("push");
 }
 
 function restartBlock() {
   clearProgress(activeModule, activeBlock);
   phase = "start";
-  render();
+  renderAndSync("push");
 }
 
 function pauseToMenu() {
   saveProgress();
   filterCat = "All";
   phase = "blockselect";
-  render();
+  renderAndSync("push");
 }
 
 function setFilter(category) {
   filterCat = category;
-  render();
+  renderAndSync();
 }
 
 function getQuestions() {
@@ -800,7 +863,7 @@ function startQuiz() {
   reviewMode = false;
   matchChoice = null;
   phase = "quiz";
-  render();
+  renderAndSync("push");
 }
 
 function startWrongQuiz() {
@@ -815,7 +878,7 @@ function startWrongQuiz() {
   reviewMode = true;
   matchChoice = null;
   phase = "quiz";
-  render();
+  renderAndSync("push");
 }
 
 function pick(optionIndex) {
@@ -831,7 +894,7 @@ function pick(optionIndex) {
     sel = optionIndex;
   }
   saveProgress();
-  render();
+  renderAndSync();
 }
 
 function isCorrect() {
@@ -877,7 +940,7 @@ function submitAnswer() {
     wrongs.push(question);
   }
   saveProgress();
-  render();
+  renderAndSync();
 }
 
 function nextQuestion() {
@@ -895,7 +958,7 @@ function nextQuestion() {
   } else {
     saveProgress();
   }
-  render();
+  renderAndSync();
 }
 
 // ── Tastatursteuerung: 1–6 / A–F wählen, Enter prüft bzw. geht weiter ──
@@ -923,4 +986,4 @@ if (typeof document.addEventListener === "function") {
   });
 }
 
-render();
+renderAndSync();

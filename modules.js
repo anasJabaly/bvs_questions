@@ -154,7 +154,8 @@ const MODULES = {
             title: "Vorlesung 2",
             sub: "Stakeholder, Ziele & Markt",
             questions: BWR_VL2,
-            cats: ["All", "Stakeholder", "Unternehmensziele", "Markt", "Business Model"],
+            cats: ["All", "Stakeholder", "Unternehmensziele", "Wirtschaftsordnung", "Markt", "Big Data", "Porter", "Business Model"],
+            content: BWR_VL2_CONTENT,
           },
           vl3: {
             title: "Vorlesung 3",
@@ -196,6 +197,13 @@ const MODULES = {
             questions: [],
             cats: ["All"],
             content: BWR_VL1_REFERENCE_CONTENT,
+          },
+          vl2reference: {
+            title: "Vorlesung 2",
+            sub: "Alle Begriffe, Definitionen und Formeln",
+            questions: [],
+            cats: ["All"],
+            content: BWR_VL2_REFERENCE_CONTENT,
           },
         },
       },
