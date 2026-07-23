@@ -10,7 +10,12 @@ function shuffle(items) {
 }
 
 function shuffleOpts(question) {
-  if (question.type === "fill") return {...question};
+  if (question.type === "fill") {
+    const choices = Array.isArray(question.choices) && question.choices.length
+      ? shuffle([...new Set(question.choices)])
+      : [...new Set(question.answers || [])];
+    return {...question, choices};
+  }
 
   if (question.type === "match") {
     const pairs = shuffle((question.pairs || []).map(([left, right], pairId) => ({left, right, pairId})));
@@ -218,19 +223,20 @@ function refreshDerivedState() {
   }
 }
 
-function snapshotState() {
+function snapshotState(scrollY = (typeof window !== "undefined" ? window.scrollY : 0)) {
   return JSON.parse(JSON.stringify({
-    activeModule, activeGroup, activeBlock, questions, idx, score, sel, answered, phase, filterCat, wrongs, reviewMode, matchChoice,
+    activeModule, activeGroup, activeBlock, questions, idx, score, sel, answered, phase, filterCat, wrongs, reviewMode, matchChoice, scrollY,
   }));
 }
 
 let isRestoringHistory = false;
 
-function syncHistory(mode = "replace") {
+function syncHistory(mode = "replace", scrollY = (typeof window !== "undefined" ? window.scrollY : 0)) {
   if (isRestoringHistory || typeof window === "undefined" || !window.history?.replaceState) return;
-  const state = snapshotState();
-  if (mode === "push") window.history.pushState(state, "");
-  else window.history.replaceState(state, "");
+  const state = snapshotState(scrollY);
+  const cleanUrl = `${window.location.pathname}${window.location.search}`;
+  if (mode === "push") window.history.pushState(state, "", cleanUrl);
+  else window.history.replaceState(state, "", cleanUrl);
 }
 
 function restoreState(state) {
@@ -250,11 +256,23 @@ function restoreState(state) {
   refreshDerivedState();
 }
 
-function renderAndSync(mode = "replace") {
+function renderAndSync(mode = "replace", scrollMode = mode === "push" ? "top" : "preserve") {
+  const currentY = typeof window !== "undefined" ? window.scrollY : 0;
+
+  // Vor einem neuen Navigationsschritt die Scrollposition der aktuellen Seite merken.
+  if (mode === "push" && typeof window !== "undefined" && window.history?.replaceState && window.history.state) {
+    window.history.replaceState({...window.history.state, scrollY: currentY}, "", window.location.href);
+  }
+
   render();
-  syncHistory(mode);
+  const targetY = scrollMode === "top" ? 0 : currentY;
+  syncHistory(mode, targetY);
+
+  // Bei Antwortauswahl und Auswertung bleibt die Seite exakt an derselben Stelle.
   if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
-    window.scrollTo({top: 0, left: 0, behavior: "auto"});
+    const restore = () => window.scrollTo({top: targetY, left: 0, behavior: "auto"});
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(restore);
+    else restore();
   }
 }
 
@@ -265,7 +283,10 @@ if (typeof window !== "undefined") {
     restoreState(event.state);
     render();
     if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
-      window.scrollTo({top: 0, left: 0, behavior: "auto"});
+      const targetY = Number.isFinite(event.state.scrollY) ? event.state.scrollY : 0;
+      const restore = () => window.scrollTo({top: targetY, left: 0, behavior: "auto"});
+      if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(restore);
+      else restore();
     }
     isRestoringHistory = false;
   });
@@ -552,6 +573,15 @@ function updateFillAnswer(value) {
   saveProgress();
 }
 
+function pickFill(choiceIndex) {
+  if (answered) return;
+  const question = questions[idx];
+  if (question.type !== "fill" || !Array.isArray(question.choices)) return;
+  sel = question.choices[choiceIndex];
+  saveProgress();
+  renderAndSync();
+}
+
 function selectMatchOption(rightIndex) {
   if (answered) return;
   matchChoice = matchChoice === rightIndex ? null : rightIndex;
@@ -620,15 +650,29 @@ function renderChoiceBody(question, selected, keys) {
 }
 
 function renderFillBody(question) {
+  const choices = question.choices || question.answers || [];
   const correctAnswer = question.answers?.[0] || "";
+  const selectedValue = String(sel ?? "");
+
   return `
-    <div class="question-type-note">Lückentext — gib den fehlenden Begriff ein</div>
-    <label class="fill-answer-wrap">
-      <span>Deine Antwort</span>
-      <input class="fill-answer ${answered ? (isCorrect() ? "correct" : "wrong") : ""}"
-        type="text" value="${escapeHtml(sel || "")}" placeholder="${escapeHtml(question.placeholder || "Antwort eingeben")}" 
-        ${answered ? "disabled" : ""} oninput="updateFillAnswer(this.value)" autocomplete="off">
-    </label>
+    <div class="question-type-note">Lückentext — wähle den passenden Begriff aus</div>
+    <div class="fill-choice-grid" role="group" aria-label="Antwortmöglichkeiten für den Lückentext">
+      ${choices.map((choice, choiceIndex) => {
+        const normalizedChoice = normalizeAnswer(choice);
+        const correct = (question.answers || []).some(answer => normalizeAnswer(answer) === normalizedChoice);
+        const chosen = normalizeAnswer(selectedValue) === normalizedChoice;
+        let classes = "option-btn fill-choice-btn";
+        if (answered) {
+          if (correct) classes += " correct";
+          else if (chosen) classes += " wrong";
+        } else if (chosen) {
+          classes += " selected";
+        }
+        return `<button type="button" class="${classes}" ${answered ? "disabled" : ""} onclick="pickFill(${choiceIndex})">
+          <span class="option-key">${String.fromCharCode(65 + choiceIndex)}</span><span>${escapeHtml(choice)}</span>
+        </button>`;
+      }).join("")}
+    </div>
     ${answered && !isCorrect() ? `<div class="fill-solution">Richtige Lösung: <strong>${escapeHtml(correctAnswer)}</strong></div>` : ""}`;
 }
 

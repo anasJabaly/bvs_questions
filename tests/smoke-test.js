@@ -100,11 +100,20 @@ assert.match(elements.app.innerHTML, /Klausurlexikon und Formelsammlung/);
 assert.match(elements.app.innerHTML, /Wirtschaftlichkeit/);
 assert.match(elements.app.innerHTML, /Homo oeconomicus/);
 
-// Lückentext korrekt beantworten.
+// Lückentext wird als Auswahlaufgabe dargestellt und korrekt beantwortet.
 vm.runInContext(`
   activeModule = 'bwr'; activeGroup = 'lectures'; activeBlock = 'vl1';
   questions = [shuffleOpts(BWR_VL1.find(q => q.type === 'fill'))];
-  idx = 0; score = 0; answered = false; phase = 'quiz'; sel = questions[0].answers[0];
+  idx = 0; score = 0; answered = false; phase = 'quiz'; sel = null;
+  render();
+`, context);
+assert.match(elements.app.innerHTML, /wähle den passenden Begriff aus/);
+assert.doesNotMatch(elements.app.innerHTML, /<input/);
+vm.runInContext(`
+  const correctIndex = questions[0].choices.findIndex(choice =>
+    questions[0].answers.some(answer => normalizeAnswer(answer) === normalizeAnswer(choice))
+  );
+  pickFill(correctIndex);
   submitAnswer();
 `, context);
 assert.equal(vm.runInContext("score", context), 1);

@@ -27,6 +27,7 @@ for (const file of [
   "questions.js",
   "bwr-questions.js",
   "bwr-lectures.js",
+  "bwr-vl2-updates.js",
   "dbii-questions.js",
   "cg-worksheets.js",
   "cg-lectures.js",

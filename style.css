@@ -663,3 +663,12 @@
   .match-left { min-height:44px; }
   .bwr-table { min-width:620px; }
 }
+
+/* ── Lückentexte als Auswahlaufgabe ── */
+.fill-choice-grid {
+  display:grid;
+  gap:8px;
+}
+.fill-choice-btn {
+  min-height:52px;
+}
