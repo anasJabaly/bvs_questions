@@ -26,6 +26,7 @@ const context = vm.createContext({
 for (const file of [
   "questions.js",
   "bwr-questions.js",
+  "bwr-lectures.js",
   "dbii-questions.js",
   "cg-worksheets.js",
   "cg-lectures.js",
@@ -77,14 +78,49 @@ vm.runInContext("backToBlocks(); selectBlock('vl06')", context);
 assert.match(elements.app.innerHTML, /perspektivische Division/);
 assert.match(elements.app.innerHTML, /Near, Far und Tiefengenauigkeit/);
 
-// Andere Module bleiben erreichbar.
+// BWR besitzt jetzt Vorlesungsskripte, einen Begriffe-&-Formeln-Bereich und neue Klausurfragetypen.
 vm.runInContext("showModuleMenu(); selectModule('bwr')", context);
 assert.equal(elements["header-tag"].textContent, "Betriebswirtschaft und Recht");
-assert.match(elements.app.innerHTML, /Vorlesung 6/);
-vm.runInContext("selectBlock('vl5')", context);
-assert.match(elements.app.innerHTML, /11 Fragen ausgewählt/);
-vm.runInContext("startQuiz()", context);
-assert.match(elements.app.innerHTML, /Frage 1 \/ 11/);
+assert.match(elements.app.innerHTML, /Vorlesungen/);
+assert.match(elements.app.innerHTML, /Begriffe &amp; Formeln|Begriffe & Formeln/);
+assert.ok(vm.runInContext("BWR_VL1.length >= 40", context));
+assert.ok(vm.runInContext("BWR_VL1.some(q => q.type === 'fill')", context));
+assert.ok(vm.runInContext("BWR_VL1.some(q => q.type === 'match')", context));
+
+vm.runInContext("selectGroup('lectures'); selectBlock('vl1')", context);
+assert.match(elements.app.innerHTML, /Einführung in BWL und Entrepreneurship/);
+assert.match(elements.app.innerHTML, /Wertschöpfung/);
+assert.match(elements.app.innerHTML, /Klausurfragen zu Vorlesung 1 starten/);
+vm.runInContext("startLessonQuiz()", context);
+assert.match(elements.app.innerHTML, /Frage 1 \/ [4-9][0-9]/);
+
+vm.runInContext("backToLesson(); backToBlocks(); backToGroups(); selectGroup('reference'); selectBlock('vl1reference')", context);
+assert.match(elements.app.innerHTML, /Klausurlexikon und Formelsammlung/);
+assert.match(elements.app.innerHTML, /Wirtschaftlichkeit/);
+assert.match(elements.app.innerHTML, /Homo oeconomicus/);
+
+// Lückentext korrekt beantworten.
+vm.runInContext(`
+  activeModule = 'bwr'; activeGroup = 'lectures'; activeBlock = 'vl1';
+  questions = [shuffleOpts(BWR_VL1.find(q => q.type === 'fill'))];
+  idx = 0; score = 0; answered = false; phase = 'quiz'; sel = questions[0].answers[0];
+  submitAnswer();
+`, context);
+assert.equal(vm.runInContext("score", context), 1);
+assert.match(elements.app.innerHTML, /Richtig/);
+
+// Drag-&-Drop-Zuordnung vorbereiten, per Klick zuweisen und vollständig korrekt prüfen.
+vm.runInContext(`
+  questions = [shuffleOpts(BWR_VL1.find(q => q.type === 'match'))];
+  idx = 0; score = 0; answered = false; phase = 'quiz'; sel = null; matchChoice = null;
+  render();
+  selectMatchOption(questions[0].ans[0]);
+  matchTargetClick(0);
+`, context);
+assert.equal(vm.runInContext("sel[0]", context), vm.runInContext("questions[0].ans[0]", context));
+vm.runInContext("sel = [...questions[0].ans]; submitAnswer();", context);
+assert.equal(vm.runInContext("score", context), 1);
+assert.match(elements.app.innerHTML, /match-correct/);
 
 vm.runInContext("showModuleMenu(); selectModule('bvs2')", context);
 assert.match(elements.app.innerHTML, /Socket Programming/);
@@ -95,4 +131,4 @@ assert.match(elements["header-tag"].textContent, /Datenbanken II/);
 assert.match(elements.app.innerHTML, /Erweitertes ERM/);
 assert.match(elements.app.innerHTML, /NoSQL/);
 
-console.log("Smoke-Test erfolgreich: CG-Untermenüs, Lernskripte, Quiz und bestehende Module funktionieren.");
+console.log("Smoke-Test erfolgreich: CG-Lernbereiche, BWR-Vorlesung 1, Lexikon, neue Fragetypen und bestehende Module funktionieren.");

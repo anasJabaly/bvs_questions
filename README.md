@@ -30,10 +30,20 @@ Enthalten sind die Kapitel:
 
 Die hochgeladenen Screenshots der TH-Köln-Lernmodule sind bei Homeomorphie und Transformationen direkt in die Lernskripte eingebunden.
 
+## Betriebswirtschaft und Recht
+
+Für **Vorlesung 1** sind jetzt drei Lernformen enthalten:
+
+- **Klausurskript** mit priorisierter Zusammenfassung, Erklärungen, Formeln und Klausurcheck
+- **Begriffe & Formeln** als separates Nachschlagewerk mit Definitionen und Formelsammlung
+- **Klausurquiz** mit Single Choice, Multiple Choice, Lückentext und Drag-&-Drop-Zuordnungen
+
+Die Inhalte basieren auf den Vorlesungsfolien und Wiederholungsaufgaben des Sommersemesters 2026.
+
 ## Weitere Module
 
 - BVS2
-- BWR
+- BWR (Vorlesung 1 vollständig ausgebaut)
 - Datenbanken II
 
 ## Features

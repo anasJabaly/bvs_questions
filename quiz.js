@@ -10,6 +10,20 @@ function shuffle(items) {
 }
 
 function shuffleOpts(question) {
+  if (question.type === "fill") return {...question};
+
+  if (question.type === "match") {
+    const pairs = shuffle((question.pairs || []).map(([left, right], pairId) => ({left, right, pairId})));
+    const rightOrder = shuffle(pairs.map((_, index) => index));
+    return {
+      ...question,
+      lefts: pairs.map(pair => pair.left),
+      rights: rightOrder.map(index => pairs[index].right),
+      ans: pairs.map((_, leftIndex) => rightOrder.indexOf(leftIndex)),
+    };
+  }
+
+  if (!Array.isArray(question.opts)) return {...question};
   const order = shuffle(question.opts.map((_, index) => index));
   const opts = order.map(index => question.opts[index]);
   if (Array.isArray(question.ans)) {
@@ -33,6 +47,7 @@ let phase = "moduleselect";
 let filterCat = "All";
 let wrongs = [];          // falsch beantwortete Fragen des aktuellen Laufs
 let reviewMode = false;   // true, wenn gerade nur Fehler geübt werden
+let matchChoice = null;    // aktuell ausgewählte Zuordnungsoption (Klick-Fallback für Drag & Drop)
 
 const SAVE_PREFIX = "study_quiz_progress_v2_";
 const LEGACY_SAVE_PREFIX = "bvs2_quiz_progress_";
@@ -127,6 +142,7 @@ function saveProgress() {
       answered,
       wrongs,
       reviewMode,
+      matchChoice,
     };
     localStorage.setItem(saveKey(activeModule, activeBlock), JSON.stringify(data));
   } catch (error) {
@@ -300,7 +316,7 @@ function renderGroupSelect(app) {
 
   app.innerHTML = `
     <button class="back-link module-back" onclick="showModuleMenu()">← Alle Module</button>
-    <div class="section-intro block-intro"><span class="eyebrow">Computergrafik</span><h2>${module.groupTitle || "Wähle einen Lernbereich"}</h2></div>
+    <div class="section-intro block-intro"><span class="eyebrow">${module.fullTitle}</span><h2>${module.groupTitle || "Wähle einen Lernbereich"}</h2></div>
     <div class="module-grid cg-group-grid">${cards}</div>`;
 }
 
@@ -344,7 +360,7 @@ function renderBlockSelect(app) {
       </button>`;
 
   const backAction = module.groups ? "backToGroups()" : "showModuleMenu()";
-  const backText = module.groups ? "Zurück zu Blätter / Vorlesungen" : "Alle Module";
+  const backText = module.groups ? "Zurück zu den Lernbereichen" : "Alle Module";
   const label = group?.menuLabel || module.menuLabel;
   const menuTitle = group?.menuTitle || module.menuTitle;
 
@@ -439,14 +455,167 @@ function renderDone(app) {
     </div>`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizeAnswer(value) {
+  return String(value ?? "")
+    .toLocaleLowerCase("de-DE")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—−]/g, "-")
+    .replace(/[^a-z0-9+\-=/äöü ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function ensureMatchSelection(question) {
+  if (!Array.isArray(sel) || sel.length !== question.lefts.length) {
+    sel = Array(question.lefts.length).fill(null);
+  }
+  return sel;
+}
+
+function updateFillAnswer(value) {
+  if (answered) return;
+  sel = value;
+  saveProgress();
+}
+
+function selectMatchOption(rightIndex) {
+  if (answered) return;
+  matchChoice = matchChoice === rightIndex ? null : rightIndex;
+  render();
+}
+
+function assignMatch(leftIndex, rightIndex) {
+  if (answered || !Number.isInteger(rightIndex)) return;
+  const question = questions[idx];
+  const assignment = ensureMatchSelection(question);
+  sel = assignment.map((value, index) => {
+    if (index === leftIndex) return rightIndex;
+    return value === rightIndex ? null : value;
+  });
+  matchChoice = null;
+  saveProgress();
+  render();
+}
+
+function matchTargetClick(leftIndex) {
+  if (answered) return;
+  const question = questions[idx];
+  const assignment = ensureMatchSelection(question);
+  if (matchChoice !== null) {
+    assignMatch(leftIndex, matchChoice);
+    return;
+  }
+  if (assignment[leftIndex] !== null) {
+    sel = assignment.map((value, index) => index === leftIndex ? null : value);
+    saveProgress();
+    render();
+  }
+}
+
+function dragMatchOption(event, rightIndex) {
+  if (answered) return;
+  event.dataTransfer.setData("text/plain", String(rightIndex));
+  event.dataTransfer.effectAllowed = "move";
+}
+
+function dropMatch(event, leftIndex) {
+  event.preventDefault();
+  const rightIndex = Number(event.dataTransfer.getData("text/plain"));
+  assignMatch(leftIndex, rightIndex);
+}
+
+function renderChoiceBody(question, selected, keys) {
+  const isMulti = question.multi === true;
+  return `
+    ${isMulti ? '<div class="multi-note">Mehrere Antworten richtig — wähle alle zutreffenden aus</div>' : '<div class="question-type-note">Single Choice — genau eine Antwort ist richtig</div>'}
+    ${question.opts.map((option, optionIndex) => {
+      let classes = "option-btn";
+      if (answered) {
+        const correct = isMulti ? question.ans.includes(optionIndex) : optionIndex === question.ans;
+        const chosen = selected.includes(optionIndex);
+        if (correct) classes += " correct";
+        else if (chosen) classes += " wrong";
+      } else if (selected.includes(optionIndex)) {
+        classes += " selected";
+      }
+      const mark = isMulti
+        ? `<span class="cb">${selected.includes(optionIndex) ? "☑" : "☐"}</span>`
+        : `<span class="option-key">${keys[optionIndex]}</span>`;
+      return `<button class="${classes}" ${answered ? "disabled" : ""} onclick="pick(${optionIndex})">${mark}<span>${option}</span></button>`;
+    }).join("")}`;
+}
+
+function renderFillBody(question) {
+  const correctAnswer = question.answers?.[0] || "";
+  return `
+    <div class="question-type-note">Lückentext — gib den fehlenden Begriff ein</div>
+    <label class="fill-answer-wrap">
+      <span>Deine Antwort</span>
+      <input class="fill-answer ${answered ? (isCorrect() ? "correct" : "wrong") : ""}"
+        type="text" value="${escapeHtml(sel || "")}" placeholder="${escapeHtml(question.placeholder || "Antwort eingeben")}" 
+        ${answered ? "disabled" : ""} oninput="updateFillAnswer(this.value)" autocomplete="off">
+    </label>
+    ${answered && !isCorrect() ? `<div class="fill-solution">Richtige Lösung: <strong>${escapeHtml(correctAnswer)}</strong></div>` : ""}`;
+}
+
+function renderMatchBody(question) {
+  const assignment = ensureMatchSelection(question);
+  const used = new Set(assignment.filter(value => value !== null));
+  return `
+    <div class="question-type-note">Drag & Drop / Zuordnung — ziehe eine Antwort auf den passenden Begriff oder klicke zuerst die Antwort und dann das Feld</div>
+    <div class="match-board">
+      <div class="match-rows">
+        ${question.lefts.map((left, leftIndex) => {
+          const selectedRight = assignment[leftIndex];
+          const hasValue = selectedRight !== null;
+          const correct = answered && selectedRight === question.ans[leftIndex];
+          const stateClass = answered ? (correct ? "match-correct" : "match-wrong") : (hasValue ? "match-assigned" : "");
+          const shown = hasValue ? question.rights[selectedRight] : "Antwort hier ablegen";
+          const expected = answered && !correct ? `<small>Richtig: ${escapeHtml(question.rights[question.ans[leftIndex]])}</small>` : "";
+          return `<div class="match-row ${stateClass}">
+            <div class="match-left">${left}</div>
+            <button type="button" class="match-target" ${answered ? "disabled" : ""}
+              ondragover="event.preventDefault()" ondrop="dropMatch(event, ${leftIndex})" onclick="matchTargetClick(${leftIndex})">
+              <span>${escapeHtml(shown)}</span>${expected}
+            </button>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="match-bank" aria-label="Zuordnungsoptionen">
+        ${question.rights.map((right, rightIndex) => {
+          const isUsed = used.has(rightIndex);
+          const isPicked = matchChoice === rightIndex;
+          return `<button type="button" class="match-option ${isUsed ? "used" : ""} ${isPicked ? "picked" : ""}"
+            draggable="${answered ? "false" : "true"}" ${answered ? "disabled" : ""}
+            ondragstart="dragMatchOption(event, ${rightIndex})" onclick="selectMatchOption(${rightIndex})">${escapeHtml(right)}</button>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
 function renderQuestion(app) {
   const question = questions[idx];
   const percentage = (idx / questions.length * 100).toFixed(1);
   const keys = ["A", "B", "C", "D", "E", "F"];
-  const isMulti = question.multi === true;
   const selected = Array.isArray(sel) ? sel : (sel === null ? [] : [sel]);
-
   const wrongSoFar = (answered ? idx + 1 : idx) - score;
+
+  let answerBody;
+  if (question.type === "fill") answerBody = renderFillBody(question);
+  else if (question.type === "match") answerBody = renderMatchBody(question);
+  else answerBody = renderChoiceBody(question, selected, keys);
+
   app.innerHTML = `
     <div class="quiz-topbar">
       <button class="back-link" onclick="pauseToMenu()">⏸ Pause · zur Themenauswahl</button>
@@ -463,22 +632,7 @@ function renderQuestion(app) {
     <div class="q-card">
       <div class="q-text">${question.q}</div>
       ${question.code ? `<div class="code-block">${question.code}</div>` : ""}
-      ${isMulti ? '<div class="multi-note">Mehrere Antworten richtig — wähle alle zutreffenden aus</div>' : ""}
-      ${question.opts.map((option, optionIndex) => {
-        let classes = "option-btn";
-        if (answered) {
-          const correct = isMulti ? question.ans.includes(optionIndex) : optionIndex === question.ans;
-          const chosen = selected.includes(optionIndex);
-          if (correct) classes += " correct";
-          else if (chosen) classes += " wrong";
-        } else if (selected.includes(optionIndex)) {
-          classes += " selected";
-        }
-        const mark = isMulti
-          ? `<span class="cb">${selected.includes(optionIndex) ? "☑" : "☐"}</span>`
-          : `<span class="option-key">${keys[optionIndex]}</span>`;
-        return `<button class="${classes}" ${answered ? "disabled" : ""} onclick="pick(${optionIndex})">${mark}<span>${option}</span></button>`;
-      }).join("")}
+      ${answerBody}
     </div>
     ${answered ? `
       <div class="feedback ${isCorrect() ? "ok" : "bad"}">
@@ -605,6 +759,7 @@ function resumeBlock() {
   answered = saved.answered;
   wrongs = saved.wrongs || [];
   reviewMode = saved.reviewMode || false;
+  matchChoice = saved.matchChoice ?? null;
   phase = "quiz";
   render();
 }
@@ -643,6 +798,7 @@ function startQuiz() {
   answered = false;
   wrongs = [];
   reviewMode = false;
+  matchChoice = null;
   phase = "quiz";
   render();
 }
@@ -657,6 +813,7 @@ function startWrongQuiz() {
   answered = false;
   wrongs = [];
   reviewMode = true;
+  matchChoice = null;
   phase = "quiz";
   render();
 }
@@ -664,6 +821,7 @@ function startWrongQuiz() {
 function pick(optionIndex) {
   if (answered) return;
   const question = questions[idx];
+  if (question.type === "fill" || question.type === "match") return;
   if (question.multi) {
     if (!Array.isArray(sel)) sel = [];
     sel = sel.includes(optionIndex)
@@ -672,11 +830,24 @@ function pick(optionIndex) {
   } else {
     sel = optionIndex;
   }
+  saveProgress();
   render();
 }
 
 function isCorrect() {
   const question = questions[idx];
+
+  if (question.type === "fill") {
+    const selected = normalizeAnswer(sel);
+    return selected.length > 0 && (question.answers || []).some(answer => normalizeAnswer(answer) === selected);
+  }
+
+  if (question.type === "match") {
+    return Array.isArray(sel)
+      && sel.length === question.ans.length
+      && question.ans.every((answer, index) => sel[index] === answer);
+  }
+
   if (question.multi) {
     if (!Array.isArray(sel)) return false;
     const answer = [...question.ans].sort((a, b) => a - b);
@@ -688,13 +859,18 @@ function isCorrect() {
 
 function submitAnswer() {
   const question = questions[idx];
-  if (question.multi) {
+  if (question.type === "fill") {
+    if (!String(sel || "").trim()) return;
+  } else if (question.type === "match") {
+    if (!Array.isArray(sel) || sel.some(value => value === null || value === undefined)) return;
+  } else if (question.multi) {
     if (!Array.isArray(sel) || sel.length === 0) return;
   } else if (sel === null) {
     return;
   }
 
   answered = true;
+  matchChoice = null;
   if (isCorrect()) {
     score++;
   } else {
@@ -708,6 +884,7 @@ function nextQuestion() {
   idx++;
   sel = null;
   answered = false;
+  matchChoice = null;
   if (idx >= questions.length) {
     phase = "done";
     clearProgress(activeModule, activeBlock);
@@ -737,7 +914,7 @@ if (typeof document.addEventListener === "function") {
       else submitAnswer();
       return;
     }
-    if (answered) return;
+    if (answered || question.type === "fill" || question.type === "match") return;
 
     let optionIndex = -1;
     if (/^[1-6]$/.test(key)) optionIndex = Number(key) - 1;
